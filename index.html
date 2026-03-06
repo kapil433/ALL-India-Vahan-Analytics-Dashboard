@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>All India Vahan Analytics Platform — 4-Wheeler PV Industry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #0b0e17;
+  --surface: #13161f;
+  --surface2: #1c2030;
+  --border: #252a3a;
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,0.12);
+  --text: #e2e8f0;
+  --text-dim: #64748b;
+  --text-mid: #94a3b8;
+  --petrol: #818cf8;
+  --diesel: #64748b;
+  --cng: #34d399;
+  --ev: #22d3ee;
+  --hybrid: #fbbf24;
+  --green: #10b981;
+  --red: #f43f5e;
+  --font: 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* HEADER */
+.header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:56px;position:sticky;top:0;z-index:100;
+}
+.header-brand{display:flex;align-items:center;gap:12px}
+.header-brand .logo{
+  width:32px;height:32px;background:var(--blue);
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:14px;font-weight:600;color:#fff;
+}
+.header-brand .title{font-size:13px;font-weight:600;color:var(--text);letter-spacing:0.02em}
+.header-brand .subtitle{font-size:10px;color:var(--text-dim);font-family:var(--mono);letter-spacing:0.05em;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:8px}
+.data-badge{
+  font-family:var(--mono);font-size:10px;color:var(--cng);
+  background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);
+  padding:3px 8px;border-radius:4px;
+}
+
+/* NAV TABS */
+.nav{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;padding:0 24px;gap:0;
+}
+.nav-tab{
+  padding:10px 18px;font-size:12px;font-weight:500;color:var(--text-dim);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:all 0.2s;white-space:nowrap;letter-spacing:0.02em;
+}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* FILTER BAR */
+.filter-bar{
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  padding:10px 24px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.filter-group{display:flex;align-items:center;gap:6px}
+.filter-label{font-size:10px;color:var(--text-dim);font-family:var(--mono);letter-spacing:0.05em;white-space:nowrap}
+.filter-select{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-size:11px;font-family:var(--font);
+  padding:5px 28px 5px 10px;border-radius:5px;cursor:pointer;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  transition:border-color 0.2s;min-width:110px;
+}
+.filter-select:hover{border-color:var(--blue)}
+.filter-select:focus{outline:none;border-color:var(--blue)}
+.filter-sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+
+/* MAIN CONTENT */
+.main{padding:20px 24px;min-height:calc(100vh - 120px)}
+.page{display:none}
+.page.active{display:block}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:20px}
+.kpi-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;
+  position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--blue);opacity:0.5;
+}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.ev::before{background:var(--ev)}
+.kpi-card.cng::before{background:var(--cng)}
+.kpi-card.warn::before{background:var(--hybrid)}
+.kpi-label{font-size:10px;color:var(--text-dim);font-family:var(--mono);letter-spacing:0.05em;margin-bottom:6px}
+.kpi-value{font-size:22px;font-family:var(--mono);font-weight:600;color:var(--text);line-height:1}
+.kpi-sub{font-size:10px;color:var(--text-dim);margin-top:5px;display:flex;align-items:center;gap:4px}
+.kpi-delta{font-size:10px;font-family:var(--mono);font-weight:500;padding:2px 5px;border-radius:3px}
+.kpi-delta.up{color:var(--green);background:rgba(16,185,129,0.1)}
+.kpi-delta.down{color:var(--red);background:rgba(244,63,94,0.1)}
+.kpi-delta.neutral{color:var(--text-dim);background:var(--border)}
+
+/* CHARTS */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-grid-3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.chart-grid-full{margin-bottom:16px}
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:18px;
+}
+.chart-card.full{grid-column:1/-1}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.chart-title{font-size:12px;font-weight:600;color:var(--text);letter-spacing:0.02em}
+.chart-subtitle{font-size:10px;color:var(--text-dim);margin-top:2px}
+.chart-actions{display:flex;gap:6px}
+.chart-btn{
+  font-size:10px;font-family:var(--mono);color:var(--text-dim);
+  background:var(--bg);border:1px solid var(--border);
+  padding:3px 8px;border-radius:4px;cursor:pointer;transition:all 0.15s;
+}
+.chart-btn:hover{border-color:var(--blue);color:var(--blue)}
+.chart-btn.active{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+.chart-wrap{position:relative}
+.chart-wrap canvas{max-height:280px}
+.chart-wrap-tall canvas{max-height:340px}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:11px}
+.data-table th{
+  background:var(--surface2);color:var(--text-dim);font-weight:500;
+  font-family:var(--mono);font-size:10px;letter-spacing:0.05em;
+  padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.data-table td{
+  padding:7px 12px;border-bottom:1px solid rgba(37,42,58,0.5);
+  color:var(--text);font-family:var(--mono);
+}
+.data-table tr:hover td{background:var(--surface2)}
+.data-table .num{text-align:right}
+.data-table .up-cell{color:var(--green)}
+.data-table .dn-cell{color:var(--red)}
+
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-mid)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-sq{width:10px;height:3px;border-radius:2px;flex-shrink:0}
+
+/* UPLOAD PAGE */
+.upload-zone{
+  border:2px dashed var(--border);border-radius:12px;
+  padding:48px;text-align:center;cursor:pointer;
+  transition:all 0.2s;background:var(--surface);
+}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:var(--blue-dim)}
+.upload-icon{font-size:40px;margin-bottom:12px;opacity:0.5}
+.upload-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.upload-desc{font-size:12px;color:var(--text-dim)}
+.upload-input{display:none}
+
+.validation-panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;overflow:hidden;margin-top:16px;
+}
+.val-header{
+  background:var(--surface2);padding:12px 16px;
+  font-size:12px;font-weight:600;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.val-row{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:8px 16px;border-bottom:1px solid rgba(37,42,58,0.4);
+  font-size:11px;
+}
+.val-row:last-child{border-bottom:none}
+.val-icon{flex-shrink:0;margin-top:1px}
+.val-ok{color:var(--green)}
+.val-warn{color:var(--hybrid)}
+.val-err{color:var(--red)}
+.val-msg{color:var(--text-mid)}
+.val-detail{color:var(--text-dim);font-family:var(--mono);font-size:10px;margin-top:2px}
+
+.btn{
+  padding:8px 20px;border-radius:6px;font-size:12px;font-weight:500;
+  cursor:pointer;border:none;transition:all 0.2s;font-family:var(--font);
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-ghost{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--blue);color:var(--text)}
+.btn-row{display:flex;gap:10px;justify-content:flex-end;padding:14px 16px;border-top:1px solid var(--border)}
+
+/* PREVIEW TABLE */
+.preview-wrap{overflow-x:auto;max-height:220px;overflow-y:auto}
+
+/* FUEL COLORS */
+.fuel-CNG{color:var(--cng)}
+.fuel-Diesel{color:var(--diesel)}
+.fuel-EV{color:var(--ev)}
+.fuel-Petrol{color:var(--petrol)}
+.fuel-Hybrid{color:var(--hybrid)}
+
+/* LOADING */
+.loading{
+  display:flex;align-items:center;justify-content:center;
+  height:200px;flex-direction:column;gap:12px;
+}
+.spinner{
+  width:28px;height:28px;border:2px solid var(--border);
+  border-top-color:var(--blue);border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* HEATMAP */
+.heatmap-wrap{overflow-x:auto}
+.heatmap-table{border-collapse:collapse;font-size:10px;font-family:var(--mono)}
+.heatmap-table th{
+  padding:4px 10px;color:var(--text-dim);font-weight:500;
+  background:var(--surface2);white-space:nowrap;
+}
+.heatmap-table td{
+  padding:3px 8px;text-align:right;font-size:10px;
+  border:1px solid rgba(37,42,58,0.4);min-width:55px;
+}
+.heatmap-table .row-label{
+  font-size:10px;color:var(--text-mid);white-space:nowrap;
+  text-align:left;padding-right:14px;
+}
+
+/* COMPARISON BADGE */
+.compare-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-family:var(--mono);color:var(--ev);
+  background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.25);
+  padding:2px 8px;border-radius:4px;
+}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .chart-grid,.chart-grid-3{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .filter-bar{gap:8px}
+  .header-brand .subtitle{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-brand">
+    <div class="logo">V4</div>
+    <div>
+      <div class="title">ALL INDIA VAHAN ANALYTICS PLATFORM</div>
+      <div class="subtitle">4-WHEELER PASSENGER VEHICLE INDUSTRY · 2013–2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="data-badge" id="dataBadge">● LOADING DATA…</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-tab active" data-page="overview">📊 Overview</div>
+  <div class="nav-tab" data-page="fuel">⛽ Fuel Trends</div>
+  <div class="nav-tab" data-page="oem">🏭 OEM Analysis</div>
+  <div class="nav-tab" data-page="ev">⚡ EV & Green</div>
+  <div class="nav-tab" data-page="upload">📂 Upload Data</div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">GEOGRAPHY</span>
+    <select class="filter-select" id="f-geo">
+      <option value="all">All India</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">YEAR TYPE</span>
+    <select class="filter-select" id="f-yeartype">
+      <option value="fy">Financial Year</option>
+      <option value="cy">Calendar Year</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">YEAR</span>
+    <select class="filter-select" id="f-year"></select>
+  </div>
+  <div class="filter-group" id="month-group">
+    <span class="filter-label">MONTH</span>
+    <select class="filter-select" id="f-month">
+      <option value="all">All Months</option>
+      <option value="1">Jan</option><option value="2">Feb</option>
+      <option value="3">Mar</option><option value="4">Apr</option>
+      <option value="5">May</option><option value="6">Jun</option>
+      <option value="7">Jul</option><option value="8">Aug</option>
+      <option value="9">Sep</option><option value="10">Oct</option>
+      <option value="11">Nov</option><option value="12">Dec</option>
+    </select>
+  </div>
+  <div class="filter-sep"></div>
+  <div class="filter-group">
+    <span class="filter-label">OEM</span>
+    <select class="filter-select" id="f-oem"><option value="all">All OEMs</option></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">FUEL</span>
+    <select class="filter-select" id="f-fuel">
+      <option value="all">All Fuels</option>
+      <option value="Petrol">Petrol</option>
+      <option value="Diesel">Diesel</option>
+      <option value="CNG">CNG</option>
+      <option value="EV">EV</option>
+      <option value="Strong Hybrid">Strong Hybrid</option>
+    </select>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div class="main">
+
+  <!-- OVERVIEW PAGE -->
+  <div class="page active" id="page-overview">
+    <div class="kpi-row" id="kpi-overview"></div>
+    <div class="chart-grid-3">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">TOTAL REGISTRATIONS TREND</div>
+            <div class="chart-subtitle" id="trend-subtitle">Annual volume · All India</div>
+          </div>
+          <div class="chart-actions">
+            <button class="chart-btn active" onclick="setTrendView('volume',this)">Volume</button>
+            <button class="chart-btn" onclick="setTrendView('growth',this)">YoY%</button>
+          </div>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-trend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">FUEL MIX</div>
+            <div class="chart-subtitle" id="donut-subtitle">Selected period</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-donut" style="max-height:200px"></canvas></div>
+        <div class="legend" id="legend-donut" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">YoY GROWTH BY PERIOD</div>
+            <div class="chart-subtitle">% change vs prior year</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-yoy"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">TOP OEMs — SELECTED PERIOD</div>
+            <div class="chart-subtitle" id="topoem-subtitle">Volume by manufacturer</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-topoem"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUEL TRENDS PAGE -->
+  <div class="page" id="page-fuel">
+    <div class="kpi-row" id="kpi-fuel"></div>
+    <div class="chart-grid-full">
+      <div class="chart-card full">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">FUEL-WISE TREND — ALL YEARS</div>
+            <div class="chart-subtitle">Annual registrations by fuel type</div>
+          </div>
+          <div class="chart-actions">
+            <button class="chart-btn active" onclick="setFuelView('abs',this)">Absolute</button>
+            <button class="chart-btn" onclick="setFuelView('pct',this)">% Share</button>
+          </div>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-fuelstack"></canvas></div>
+        <div class="legend" id="legend-fuel"></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">MONTHLY TREND — SELECTED YEAR</div>
+            <div class="chart-subtitle">Month-by-month fuel volumes</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">FUEL SHARE TABLE</div>
+            <div class="chart-subtitle">Volume & share by fuel for selected period</div>
+          </div>
+        </div>
+        <div id="fuel-share-table"></div>
+      </div>
+    </div>
+    <div class="chart-grid-full">
+      <div class="chart-card full">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">MONTHLY SEASONALITY HEATMAP</div>
+            <div class="chart-subtitle">Total registrations — all months × all years</div>
+          </div>
+          <div class="chart-actions">
+            <button class="chart-btn active" onclick="setHeatFuel('all',this)">All</button>
+            <button class="chart-btn" onclick="setHeatFuel('Petrol',this)">Petrol</button>
+            <button class="chart-btn" onclick="setHeatFuel('Diesel',this)">Diesel</button>
+            <button class="chart-btn" onclick="setHeatFuel('CNG',this)">CNG</button>
+            <button class="chart-btn" onclick="setHeatFuel('EV',this)">EV</button>
+          </div>
+        </div>
+        <div class="heatmap-wrap" id="heatmap-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OEM PAGE -->
+  <div class="page" id="page-oem">
+    <div class="kpi-row" id="kpi-oem"></div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">OEM MARKET SHARE — SELECTED PERIOD</div>
+            <div class="chart-subtitle">Top manufacturers by registrations</div>
+          </div>
+          <div class="chart-actions">
+            <button class="chart-btn active" onclick="setOemView('vol',this)">Volume</button>
+            <button class="chart-btn" onclick="setOemView('share',this)">Share %</button>
+          </div>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-oembar"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">MARKET SHARE BREAKDOWN</div>
+            <div class="chart-subtitle">Concentration — selected period</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-oempie" style="max-height:220px"></canvas></div>
+        <div class="legend" id="legend-oem" style="margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">OEM TREND LINES</div>
+            <div class="chart-subtitle">Top 6 OEMs — annual registrations over years</div>
+          </div>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-oemtrend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">OEM × FUEL MATRIX</div>
+            <div class="chart-subtitle">Registrations by OEM and fuel type — selected period</div>
+          </div>
+        </div>
+        <div id="oem-matrix" class="heatmap-wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EV PAGE -->
+  <div class="page" id="page-ev">
+    <div class="kpi-row" id="kpi-ev"></div>
+    <div class="chart-grid-3">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">EV VOLUME & MARKET SHARE</div>
+            <div class="chart-subtitle">Annual EV registrations + share % (right axis)</div>
+          </div>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-ev-trend"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">TOP EV MAKERS</div>
+            <div class="chart-subtitle">Selected period</div>
+          </div>
+        </div>
+        <div class="chart-wrap chart-wrap-tall"><canvas id="chart-ev-oem"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">GREEN VEHICLE TREND</div>
+            <div class="chart-subtitle">EV + Strong Hybrid + CNG combined</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-green"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">STRONG HYBRID EMERGENCE</div>
+            <div class="chart-subtitle">Annual Strong Hybrid registrations</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-hybrid"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPLOAD PAGE -->
+  <div class="page" id="page-upload">
+    <div style="max-width:780px;margin:0 auto">
+      <div style="margin-bottom:20px">
+        <div style="font-size:18px;font-weight:600;margin-bottom:6px">Upload State / Region Data</div>
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.6">
+          Upload a Vahan .xlsx file in the same format as All India files.<br>
+          The platform will validate, clean, and map it automatically — <strong style="color:var(--text)">you review before committing</strong>.
+        </div>
+      </div>
+
+      <!-- Format spec -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px;color:var(--text-mid)">REQUIRED FILE FORMAT</div>
+        <div style="font-size:11px;color:var(--text-dim);line-height:1.8;font-family:var(--mono)">
+          Filename: <span style="color:var(--blue)">StateName_CY_YY.xlsx</span>  (e.g. Maharashtra_CY_25.xlsx)<br>
+          Col A: Serial no. &nbsp;|&nbsp; Col B: Maker &nbsp;|&nbsp; Col C: Fuel<br>
+          Col D–O: JAN through DEC &nbsp;|&nbsp; Col P: Total<br>
+          Fuels accepted: CNG, Diesel, Electric, Petrol, StrongHybrid
+        </div>
+      </div>
+
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">Drop .xlsx file here or click to browse</div>
+        <div class="upload-desc">Supports .xlsx format · Max 10MB</div>
+        <input type="file" id="file-input" class="upload-input" accept=".xlsx,.xls"/>
+      </div>
+
+      <div id="validation-area"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA ENGINE
+// ═══════════════════════════════════════════════════════════════
+const FUEL_COLORS = {
+  'Petrol': '#818cf8',
+  'Diesel': '#64748b',
+  'CNG': '#34d399',
+  'EV': '#22d3ee',
+  'Strong Hybrid': '#fbbf24'
+};
+const OEM_COLORS = [
+  '#e63946','#3b82f6','#22d3ee','#fbbf24','#a78bfa',
+  '#f97316','#34d399','#f43f5e','#64748b','#10b981',
+  '#8b5cf6','#06b6d4'
+];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+let DATA = null;
+let uploadedData = null;
+let charts = {};
+let currentPage = 'overview';
+let trendViewMode = 'volume';
+let fuelViewMode = 'abs';
+let oemViewMode = 'vol';
+let heatFuelFilter = 'all';
+
+function fmt(n) {
+  if (n >= 1e7) return (n/1e7).toFixed(2) + ' Cr';
+  if (n >= 1e5) return (n/1e5).toFixed(1) + ' L';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+function fmtFull(n) {
+  return n.toLocaleString('en-IN');
+}
+function pct(a, b) {
+  if (!b) return 0;
+  return ((a - b) / b * 100);
+}
+function deltaArrow(v) {
+  if (v > 0) return `<span class="kpi-delta up">▲ ${v.toFixed(1)}%</span>`;
+  if (v < 0) return `<span class="kpi-delta down">▼ ${Math.abs(v).toFixed(1)}%</span>`;
+  return `<span class="kpi-delta neutral">─ 0%</span>`;
+}
+
+// ── Filter state ──────────────────────────────────────────────
+function getFilters() {
+  return {
+    yeartype: document.getElementById('f-yeartype').value,
+    year: document.getElementById('f-year').value,
+    month: document.getElementById('f-month').value,
+    oem: document.getElementById('f-oem').value,
+    fuel: document.getElementById('f-fuel').value,
+    geo: document.getElementById('f-geo').value
+  };
+}
+
+// ── Get current period's raw data ──────────────────────────────
+function getFilteredRaw(filters) {
+  if (!DATA) return [];
+  let src = (uploadedData && filters.geo !== 'all') ? uploadedData.raw : DATA.raw;
+  return src.filter(r => {
+    // year filter
+    if (filters.yeartype === 'fy') {
+      if (r.fy !== filters.year) return false;
+    } else {
+      if (String(r.cal_year) !== String(filters.year)) return false;
+    }
+    // month filter (only for CY)
+    if (filters.yeartype === 'cy' && filters.month !== 'all') {
+      if (String(r.month) !== filters.month) return false;
+    }
+    if (filters.oem !== 'all' && r.maker !== filters.oem) return false;
+    if (filters.fuel !== 'all' && r.fuel !== filters.fuel) return false;
+    return true;
+  });
+}
+
+// Get prior period data for comparison
+function getPriorPeriodRaw(filters) {
+  if (!DATA) return [];
+  const src = DATA.raw;
+  if (filters.yeartype === 'fy') {
+    const fy = filters.year; // e.g. "2024-25"
+    const parts = fy.split('-');
+    const priorFY = `${parseInt(parts[0])-1}-${String(parseInt(parts[0])-1+1).slice(-2)}`;
+    return src.filter(r => {
+      if (r.fy !== priorFY) return false;
+      if (filters.oem !== 'all' && r.maker !== filters.oem) return false;
+      if (filters.fuel !== 'all' && r.fuel !== filters.fuel) return false;
+      return true;
+    });
+  } else {
+    const priorYear = String(parseInt(filters.year) - 1);
+    return src.filter(r => {
+      if (String(r.cal_year) !== priorYear) return false;
+      if (filters.month !== 'all' && String(r.month) !== filters.month) return false;
+      if (filters.oem !== 'all' && r.maker !== filters.oem) return false;
+      if (filters.fuel !== 'all' && r.fuel !== filters.fuel) return false;
+      return true;
+    });
+  }
+}
+
+function sumRegs(rows) { return rows.reduce((a,r) => a + r.registrations, 0); }
+function groupBy(rows, key) {
+  const m = {};
+  rows.forEach(r => {
+    const k = r[key];
+    m[k] = (m[k] || 0) + r.registrations;
+  });
+  return m;
+}
+
+// ─────────────────────────────────────────────────────────────
+// POPULATE YEAR DROPDOWN
+// ─────────────────────────────────────────────────────────────
+function populateYearDropdown() {
+  const yt = document.getElementById('f-yeartype').value;
+  const sel = document.getElementById('f-year');
+  sel.innerHTML = '';
+  const years = yt === 'fy' ? DATA.meta.financial_years.slice().reverse() : DATA.meta.cal_years.slice().reverse();
+  years.forEach(y => {
+    // Skip incomplete boundary FYs
+    if (yt === 'fy' && (y === '2012-13' || y === '2026-27')) return;
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = yt === 'fy' ? 'FY ' + y : 'CY ' + y;
+    sel.appendChild(opt);
+  });
+  // Default: latest complete year
+  sel.selectedIndex = 0;
+  // Toggle month filter
+  document.getElementById('month-group').style.display = yt === 'fy' ? 'none' : 'flex';
+}
+
+function populateOEMDropdown() {
+  const sel = document.getElementById('f-oem');
+  DATA.meta.makers.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    sel.appendChild(opt);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// KPI CARDS
+// ─────────────────────────────────────────────────────────────
+function buildKPIs(containerId, rows, priorRows) {
+  const total = sumRegs(rows);
+  const priorTotal = sumRegs(priorRows);
+  const byFuel = groupBy(rows, 'fuel');
+  const priorByFuel = groupBy(priorRows, 'fuel');
+
+  const evShare = total ? ((byFuel['EV']||0) / total * 100) : 0;
+  const cngShare = total ? ((byFuel['CNG']||0) / total * 100) : 0;
+  const greenShare = total ? (((byFuel['EV']||0)+(byFuel['Strong Hybrid']||0)+(byFuel['CNG']||0)) / total * 100) : 0;
+
+  const byOEM = groupBy(rows, 'maker');
+  const sorted = Object.entries(byOEM).sort((a,b)=>b[1]-a[1]);
+  const topOEM = sorted[0];
+  const topShare = total && topOEM ? (topOEM[1] / total * 100) : 0;
+
+  const yoyGrowth = pct(total, priorTotal);
+
+  const priorEV = priorTotal ? ((priorByFuel['EV']||0) / priorTotal * 100) : 0;
+  const priorGreen = priorTotal ? (((priorByFuel['EV']||0)+(priorByFuel['Strong Hybrid']||0)+(priorByFuel['CNG']||0)) / priorTotal * 100) : 0;
+
+  const kpis = [
+    { label:'TOTAL VOLUME', value: fmt(total), sub: fmtFull(total) + ' units', delta: yoyGrowth, cls:'' },
+    { label:'YoY GROWTH', value: (yoyGrowth >= 0 ? '+' : '') + yoyGrowth.toFixed(1) + '%', sub: 'vs prior year period', delta: null, cls: yoyGrowth >= 0 ? 'green' : '' },
+    { label:'EV SHARE', value: evShare.toFixed(1) + '%', sub: fmt(byFuel['EV']||0) + ' units', delta: evShare - priorEV, cls:'ev' },
+    { label:'CNG SHARE', value: cngShare.toFixed(1) + '%', sub: fmt(byFuel['CNG']||0) + ' units', delta: null, cls:'cng' },
+    { label:'GREEN VEHICLES', value: greenShare.toFixed(1) + '%', sub: 'EV + Hybrid + CNG', delta: greenShare - priorGreen, cls:'green' },
+    { label:'TOP OEM', value: topOEM ? topOEM[0].split(' ')[0] : '—', sub: topOEM ? fmt(topOEM[1]) + ' · ' + topShare.toFixed(1) + '% share' : '', delta: null, cls:'warn' },
+  ];
+
+  const el = document.getElementById(containerId);
+  el.innerHTML = kpis.map(k => `
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">
+        <span>${k.sub}</span>
+        ${k.delta !== null ? deltaArrow(k.delta) : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// OVERVIEW CHARTS
+// ─────────────────────────────────────────────────────────────
+function buildOverview() {
+  const filters = getFilters();
+  const rows = getFilteredRaw(filters);
+  const priorRows = getPriorPeriodRaw(filters);
+  buildKPIs('kpi-overview', rows, priorRows);
+  buildTrendChart(filters);
+  buildDonutChart(rows, filters);
+  buildYoYChart(filters);
+  buildTopOEMChart(rows);
+  document.getElementById('donut-subtitle').textContent = filters.year;
+  document.getElementById('topoem-subtitle').textContent = filters.year;
+}
+
+function buildTrendChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+
+  const byPeriod = {};
+  periods.forEach(p => byPeriod[p] = 0);
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (byPeriod[p] !== undefined) byPeriod[p] += r.registrations;
+  });
+
+  const labels = periods;
+  const vals = periods.map(p => byPeriod[p] || 0);
+
+  let chartData, chartType, yLabel;
+  if (trendViewMode === 'growth') {
+    const growthVals = vals.map((v,i) => i===0 ? 0 : pct(v, vals[i-1]));
+    chartData = growthVals.slice(1);
+    const gLabels = labels.slice(1);
+    chartType = 'bar';
+    yLabel = 'YoY Growth %';
+    updateChart('chart-trend', chartType, gLabels, [{
+      label:'YoY Growth %',
+      data: chartData,
+      backgroundColor: chartData.map(v => v >= 0 ? 'rgba(16,185,129,0.7)' : 'rgba(244,63,94,0.7)'),
+      borderRadius: 3
+    }], { yLabel, suffix: '%' });
+  } else {
+    updateChart('chart-trend', 'line', labels, [{
+      label:'Total Registrations',
+      data: vals,
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0.08)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 4,
+      pointBackgroundColor: '#3b82f6'
+    }], { yLabel: 'Registrations' });
+  }
+}
+
+function buildDonutChart(rows, filters) {
+  const byFuel = groupBy(rows, 'fuel');
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+  const vals = fuels.map(f => byFuel[f] || 0);
+
+  destroyChart('chart-donut');
+  const ctx = document.getElementById('chart-donut').getContext('2d');
+  charts['chart-donut'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: fuels,
+      datasets: [{ data: vals, backgroundColor: fuels.map(f => FUEL_COLORS[f]), borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+              const pct = total ? (ctx.parsed / total * 100).toFixed(1) : 0;
+              return ` ${ctx.label}: ${fmtFull(ctx.parsed)} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+  const total = vals.reduce((a,b)=>a+b,0);
+  document.getElementById('legend-donut').innerHTML = fuels.map((f,i) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${FUEL_COLORS[f]}"></div>${f}: ${total ? (vals[i]/total*100).toFixed(1) : 0}%</div>`
+  ).join('');
+}
+
+function buildYoYChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+
+  const byPeriod = {};
+  periods.forEach(p => byPeriod[p] = 0);
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (byPeriod[p] !== undefined) byPeriod[p] += r.registrations;
+  });
+
+  const vals = periods.map(p => byPeriod[p] || 0);
+  const growthVals = vals.map((v,i) => i===0 ? null : parseFloat(pct(v, vals[i-1]).toFixed(1)));
+  const gLabels = periods.slice(1);
+  const gVals = growthVals.slice(1);
+
+  updateChart('chart-yoy', 'bar', gLabels, [{
+    label: 'YoY Growth %',
+    data: gVals,
+    backgroundColor: gVals.map(v => (v||0) >= 0 ? 'rgba(16,185,129,0.75)' : 'rgba(244,63,94,0.75)'),
+    borderRadius: 3
+  }], { suffix: '%', yZero: true });
+}
+
+function buildTopOEMChart(rows) {
+  const byOEM = groupBy(rows, 'maker');
+  const sorted = Object.entries(byOEM).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  updateChart('chart-topoem', 'bar', sorted.map(x=>x[0]), [{
+    label:'Registrations',
+    data: sorted.map(x=>x[1]),
+    backgroundColor: sorted.map((_,i) => OEM_COLORS[i % OEM_COLORS.length]),
+    borderRadius: 3
+  }], { indexAxis: 'y' });
+}
+
+// ─────────────────────────────────────────────────────────────
+// FUEL TRENDS CHARTS
+// ─────────────────────────────────────────────────────────────
+function buildFuelPage() {
+  const filters = getFilters();
+  const rows = getFilteredRaw(filters);
+  const priorRows = getPriorPeriodRaw(filters);
+  buildKPIs('kpi-fuel', rows, priorRows);
+  buildFuelStackChart(filters);
+  buildMonthlyChart(filters);
+  buildFuelShareTable(rows);
+  buildHeatmap();
+}
+
+function buildFuelStackChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+  const byPeriodFuel = {};
+  periods.forEach(p => { byPeriodFuel[p] = {}; fuels.forEach(f => byPeriodFuel[p][f] = 0); });
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (byPeriodFuel[p]) byPeriodFuel[p][r.fuel] = (byPeriodFuel[p][r.fuel]||0) + r.registrations;
+  });
+
+  const isPct = fuelViewMode === 'pct';
+  const datasets = fuels.map(fuel => {
+    let data = periods.map(p => byPeriodFuel[p][fuel] || 0);
+    if (isPct) {
+      data = periods.map((p,i) => {
+        const total = fuels.reduce((a,f) => a + (byPeriodFuel[p][f]||0), 0);
+        return total ? parseFloat(((byPeriodFuel[p][fuel]||0) / total * 100).toFixed(2)) : 0;
+      });
+    }
+    return { label: fuel, data, backgroundColor: FUEL_COLORS[fuel], stack: 'a', borderWidth: 0 };
+  });
+
+  updateChart('chart-fuelstack', 'bar', periods, datasets, {
+    stacked: true, suffix: isPct ? '%' : '', indexAxis: 'x'
+  });
+
+  document.getElementById('legend-fuel').innerHTML = fuels.map(f =>
+    `<div class="legend-item"><div class="legend-sq" style="background:${FUEL_COLORS[f]}"></div>${f}</div>`
+  ).join('');
+}
+
+function buildMonthlyChart(filters) {
+  const yt = filters.yeartype;
+  const year = filters.year;
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+
+  const byMonthFuel = {};
+  for (let m = 1; m <= 12; m++) { byMonthFuel[m] = {}; fuels.forEach(f => byMonthFuel[m][f] = 0); }
+
+  DATA.raw.forEach(r => {
+    const match = yt === 'fy' ? r.fy === year : String(r.cal_year) === year;
+    if (match) byMonthFuel[r.month][r.fuel] = (byMonthFuel[r.month][r.fuel]||0) + r.registrations;
+  });
+
+  const datasets = fuels.map(fuel => ({
+    label: fuel,
+    data: Array.from({length:12}, (_,i) => byMonthFuel[i+1][fuel] || 0),
+    borderColor: FUEL_COLORS[fuel],
+    backgroundColor: FUEL_COLORS[fuel] + '22',
+    fill: false,
+    tension: 0.3,
+    pointRadius: 3
+  }));
+
+  updateChart('chart-monthly', 'line', MONTHS, datasets, {});
+}
+
+function buildFuelShareTable(rows) {
+  const byFuel = groupBy(rows, 'fuel');
+  const total = sumRegs(rows);
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+  const html = `<table class="data-table">
+    <thead><tr><th>FUEL</th><th class="num">VOLUME</th><th class="num">SHARE %</th></tr></thead>
+    <tbody>${fuels.map(f => {
+      const v = byFuel[f] || 0;
+      const s = total ? (v/total*100).toFixed(1) : '0.0';
+      return `<tr>
+        <td><span class="fuel-${f.replace(' ','')}">${f}</span></td>
+        <td class="num">${fmtFull(v)}</td>
+        <td class="num">${s}%</td>
+      </tr>`;
+    }).join('')}
+    <tr style="border-top:1px solid var(--blue);font-weight:600">
+      <td>TOTAL</td><td class="num">${fmtFull(total)}</td><td class="num">100.0%</td>
+    </tr></tbody></table>`;
+  document.getElementById('fuel-share-table').innerHTML = html;
+}
+
+function buildHeatmap() {
+  const fuelF = heatFuelFilter;
+  const yt = document.getElementById('f-yeartype').value;
+  const years = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+
+  // Build month×year matrix
+  const grid = {};
+  years.forEach(y => { grid[y] = {}; for(let m=1;m<=12;m++) grid[y][m] = 0; });
+  DATA.raw.forEach(r => {
+    if (fuelF !== 'all' && r.fuel !== fuelF) return;
+    const y = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (grid[y]) grid[y][r.month] = (grid[y][r.month]||0) + r.registrations;
+  });
+
+  // Find max for color scaling
+  let maxVal = 0;
+  years.forEach(y => { for(let m=1;m<=12;m++) if(grid[y][m] > maxVal) maxVal = grid[y][m]; });
+
+  const months = MONTHS;
+  const th = `<th class="row-label">YEAR</th>${months.map(m=>`<th>${m}</th>`).join('')}`;
+  const rows = years.map(y => {
+    const cells = Array.from({length:12},(_,i) => {
+      const v = grid[y][i+1] || 0;
+      const intensity = maxVal ? v / maxVal : 0;
+      const bg = fuelF === 'EV' ? `rgba(34,211,238,${0.1 + intensity*0.7})` : `rgba(59,130,246,${0.05 + intensity*0.7})`;
+      const tc = intensity > 0.5 ? '#fff' : 'var(--text-dim)';
+      return `<td style="background:${bg};color:${tc}">${v > 0 ? fmt(v) : '—'}</td>`;
+    }).join('');
+    return `<tr><td class="row-label">${y}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('heatmap-container').innerHTML =
+    `<table class="heatmap-table"><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// OEM CHARTS
+// ─────────────────────────────────────────────────────────────
+function buildOEMPage() {
+  const filters = getFilters();
+  const rows = getFilteredRaw(filters);
+  const priorRows = getPriorPeriodRaw(filters);
+  buildKPIs('kpi-oem', rows, priorRows);
+  buildOEMBarChart(rows);
+  buildOEMPieChart(rows);
+  buildOEMTrendChart(filters);
+  buildOEMMatrix(rows);
+}
+
+function buildOEMBarChart(rows) {
+  const byOEM = groupBy(rows, 'maker');
+  const total = sumRegs(rows);
+  const sorted = Object.entries(byOEM).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const vals = oemViewMode === 'share'
+    ? sorted.map(x => parseFloat((x[1]/total*100).toFixed(1)))
+    : sorted.map(x => x[1]);
+
+  updateChart('chart-oembar', 'bar', sorted.map(x=>x[0]), [{
+    label: oemViewMode === 'share' ? 'Market Share %' : 'Registrations',
+    data: vals,
+    backgroundColor: sorted.map((_,i) => OEM_COLORS[i % OEM_COLORS.length]),
+    borderRadius: 4
+  }], { indexAxis: 'y', suffix: oemViewMode === 'share' ? '%' : '' });
+}
+
+function buildOEMPieChart(rows) {
+  const byOEM = groupBy(rows, 'maker');
+  const sorted = Object.entries(byOEM).sort((a,b)=>b[1]-a[1]);
+  const top6 = sorted.slice(0,6);
+  const restVal = sorted.slice(6).reduce((a,x)=>a+x[1],0);
+  const labels = [...top6.map(x=>x[0]), restVal > 0 ? 'Others' : null].filter(Boolean);
+  const vals = [...top6.map(x=>x[1]), restVal > 0 ? restVal : null].filter(Boolean);
+  const colors = [...OEM_COLORS.slice(0,6), '#374151'];
+
+  destroyChart('chart-oempie');
+  const ctx = document.getElementById('chart-oempie').getContext('2d');
+  const total = vals.reduce((a,b)=>a+b,0);
+  charts['chart-oempie'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '55%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: (ctx) => {
+            const p = total ? (ctx.parsed/total*100).toFixed(1) : 0;
+            return ` ${ctx.label}: ${fmtFull(ctx.parsed)} (${p}%)`;
+          }}
+        }
+      }
+    }
+  });
+  document.getElementById('legend-oem').innerHTML = labels.map((l,i) =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l}</div>`
+  ).join('');
+}
+
+function buildOEMTrendChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+
+  // Top 6 OEMs by total
+  const totals = {};
+  DATA.raw.forEach(r => { totals[r.maker] = (totals[r.maker]||0) + r.registrations; });
+  const top6 = Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6).map(x=>x[0]);
+
+  const byPeriodOEM = {};
+  periods.forEach(p => { byPeriodOEM[p] = {}; top6.forEach(o => byPeriodOEM[p][o] = 0); });
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (byPeriodOEM[p] && top6.includes(r.maker))
+      byPeriodOEM[p][r.maker] += r.registrations;
+  });
+
+  const datasets = top6.map((oem, i) => ({
+    label: oem,
+    data: periods.map(p => byPeriodOEM[p][oem] || 0),
+    borderColor: OEM_COLORS[i],
+    backgroundColor: OEM_COLORS[i] + '22',
+    fill: false,
+    tension: 0.3,
+    pointRadius: 3
+  }));
+
+  updateChart('chart-oemtrend', 'line', periods, datasets, {});
+}
+
+function buildOEMMatrix(rows) {
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+  const byOEM = groupBy(rows, 'maker');
+  const top8OEMs = Object.entries(byOEM).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]);
+
+  const grid = {};
+  top8OEMs.forEach(o => { grid[o] = {}; fuels.forEach(f => grid[o][f] = 0); });
+  rows.forEach(r => {
+    if (grid[r.maker]) grid[r.maker][r.fuel] = (grid[r.maker][r.fuel]||0) + r.registrations;
+  });
+
+  const allVals = top8OEMs.flatMap(o => fuels.map(f => grid[o][f]));
+  const maxVal = Math.max(...allVals);
+
+  const th = `<th class="row-label">OEM</th>${fuels.map(f=>`<th style="color:${FUEL_COLORS[f]}">${f}</th>`).join('')}`;
+  const trs = top8OEMs.map(o => {
+    const cells = fuels.map(f => {
+      const v = grid[o][f] || 0;
+      const int = maxVal ? v/maxVal : 0;
+      const bg = `rgba(${hexToRGB(FUEL_COLORS[f])},${0.05 + int*0.6})`;
+      const tc = int > 0.5 ? '#fff' : 'var(--text-dim)';
+      return `<td style="background:${bg};color:${tc}">${v > 0 ? fmt(v) : '—'}</td>`;
+    }).join('');
+    return `<tr><td class="row-label">${o}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('oem-matrix').innerHTML =
+    `<table class="heatmap-table" style="margin-top:6px"><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// EV PAGE
+// ─────────────────────────────────────────────────────────────
+function buildEVPage() {
+  const filters = getFilters();
+  const rows = getFilteredRaw(filters);
+  const priorRows = getPriorPeriodRaw(filters);
+  buildKPIs('kpi-ev', rows, priorRows);
+  buildEVTrendChart(filters);
+  buildEVOEMChart(rows);
+  buildGreenTrendChart(filters);
+  buildHybridChart(filters);
+}
+
+function buildEVTrendChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+
+  const byPeriod = {};
+  const totalByPeriod = {};
+  periods.forEach(p => { byPeriod[p] = 0; totalByPeriod[p] = 0; });
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (byPeriod[p] !== undefined) {
+      totalByPeriod[p] += r.registrations;
+      if (r.fuel === 'EV') byPeriod[p] += r.registrations;
+    }
+  });
+  const evVals = periods.map(p => byPeriod[p] || 0);
+  const shareVals = periods.map(p => totalByPeriod[p] ? parseFloat((byPeriod[p]/totalByPeriod[p]*100).toFixed(2)) : 0);
+
+  destroyChart('chart-ev-trend');
+  const ctx = document.getElementById('chart-ev-trend').getContext('2d');
+  charts['chart-ev-trend'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: periods,
+      datasets: [
+        { type:'bar', label:'EV Volume', data: evVals, backgroundColor:'rgba(34,211,238,0.5)', borderRadius:3, yAxisID:'y' },
+        { type:'line', label:'EV Share %', data: shareVals, borderColor:'#fbbf24', backgroundColor:'transparent', tension:0.3, pointRadius:4, pointBackgroundColor:'#fbbf24', yAxisID:'y1' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color:'#94a3b8', font:{size:10} } }, tooltip: {} },
+      scales: {
+        x: { grid:{color:'rgba(37,42,58,0.8)'}, ticks:{color:'#64748b',font:{size:10}} },
+        y: { grid:{color:'rgba(37,42,58,0.8)'}, ticks:{color:'#94a3b8',font:{size:10}}, title:{display:true,text:'Volume',color:'#64748b',font:{size:10}} },
+        y1: { position:'right', grid:{display:false}, ticks:{color:'#fbbf24',font:{size:10},callback:v=>v+'%'}, title:{display:true,text:'Share %',color:'#fbbf24',font:{size:10}} }
+      }
+    }
+  });
+}
+
+function buildEVOEMChart(rows) {
+  const evRows = rows.filter(r => r.fuel === 'EV');
+  const byOEM = groupBy(evRows, 'maker');
+  const sorted = Object.entries(byOEM).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  updateChart('chart-ev-oem', 'bar', sorted.map(x=>x[0]), [{
+    label:'EV Registrations',
+    data: sorted.map(x=>x[1]),
+    backgroundColor: sorted.map((_,i) => OEM_COLORS[i] + 'cc'),
+    borderRadius: 4
+  }], { indexAxis: 'y' });
+}
+
+function buildGreenTrendChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+  const greenFuels = ['EV','Strong Hybrid','CNG'];
+  const by = {};
+  periods.forEach(p => { by[p] = {}; greenFuels.forEach(f => by[p][f] = 0); });
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (by[p] && greenFuels.includes(r.fuel)) by[p][r.fuel] += r.registrations;
+  });
+  const datasets = greenFuels.map((f,i) => ({
+    label: f, data: periods.map(p => by[p][f]||0),
+    backgroundColor: FUEL_COLORS[f] + '80', stack:'g', borderWidth:0
+  }));
+  updateChart('chart-green', 'bar', periods, datasets, { stacked: true });
+}
+
+function buildHybridChart(filters) {
+  const yt = filters.yeartype;
+  const periods = yt === 'fy'
+    ? DATA.meta.financial_years.filter(y => y !== '2012-13' && y !== '2026-27')
+    : DATA.meta.cal_years;
+  const by = {};
+  periods.forEach(p => by[p] = 0);
+  DATA.raw.forEach(r => {
+    const p = yt === 'fy' ? r.fy : String(r.cal_year);
+    if (by[p] !== undefined && r.fuel === 'Strong Hybrid') by[p] += r.registrations;
+  });
+  updateChart('chart-hybrid', 'line', periods, [{
+    label:'Strong Hybrid', data: periods.map(p=>by[p]||0),
+    borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.1)', fill:true, tension:0.3, pointRadius:4, pointBackgroundColor:'#fbbf24'
+  }], {});
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHART UTILITY
+// ─────────────────────────────────────────────────────────────
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function updateChart(id, type, labels, datasets, opts={}) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const stacked = opts.stacked || false;
+  const indexAxis = opts.indexAxis || 'x';
+  charts[id] = new Chart(ctx.getContext('2d'), {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis,
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { color:'#94a3b8', font:{size:10}, boxWidth:12, padding:12 } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed[indexAxis==='y'?'x':'y'];
+              const s = opts.suffix || '';
+              return ` ${ctx.dataset.label}: ${typeof v === 'number' && !s ? fmtFull(Math.round(v)) : v}${s}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color:'rgba(37,42,58,0.8)' },
+          ticks: { color:'#64748b', font:{size:10}, maxTicksLimit:14, maxRotation:40 },
+          stacked
+        },
+        y: {
+          grid: { color:'rgba(37,42,58,0.8)' },
+          ticks: {
+            color:'#94a3b8', font:{size:10},
+            callback: v => {
+              if (opts.suffix === '%') return v + '%';
+              if (typeof v === 'number') return fmt(v);
+              return v;
+            }
+          },
+          stacked,
+          beginAtZero: opts.yZero !== false
+        }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// UPLOAD & VALIDATION
+// ─────────────────────────────────────────────────────────────
+const FUEL_MAP = {'CNG':'CNG','DIESEL':'Diesel','ELECTRIC':'EV','PETROL':'Petrol','STRONGHYBRID':'Strong Hybrid','STRONGHYBRIDEV':'Strong Hybrid'};
+const MAKER_MAP_JS = {
+  'MARUTI SUZUKI INDIA LTD':'Maruti Suzuki','MARUTI UDYOG LTD':'Maruti Suzuki',
+  'TATA MOTORS LTD':'Tata Motors','TATA MOTORS PASSENGER VEHICLES LTD':'Tata Motors',
+  'TATA PASSENGER ELECTRIC MOBILITY LTD':'Tata Motors',
+  'HYUNDAI MOTOR INDIA LTD':'Hyundai','HYUNDAI MOTORS LTD, SOUTH KOREA':'Hyundai',
+  'MAHINDRA & MAHINDRA LIMITED':'Mahindra','MAHINDRA ELECTRIC MOBILITY LIMITED':'Mahindra',
+  'MAHINDRA LAST MILE MOBILITY LTD':'Mahindra','MAHINDRA ELECTRIC AUTOMOBILE LTD':'Mahindra',
+  'HONDA CARS INDIA LTD':'Honda Cars','TOYOTA KIRLOSKAR MOTOR PVT LTD':'Toyota',
+  'KIA INDIA PRIVATE LIMITED':'Kia','KIA MOTORS CORPN':'Kia',
+  'JSW MG MOTOR INDIA PVT LTD':'MG Motor','MG CAR COMPANY LIMITED':'MG Motor',
+  'RENAULT INDIA PVT LTD':'Renault','RENAULT NISSAN AUTOMOTIVE INDIA PRIVATE LIMITED':'Renault',
+  'VOLKSWAGEN INDIA PVT LTD':'Volkswagen Group','SKODA AUTO VOLKSWAGEN INDIA PVT LTD':'Volkswagen Group',
+  'MERCEDES-BENZ INDIA PVT LTD':'Mercedes-Benz','BMW INDIA PVT LTD':'BMW','AUDI AG':'Audi',
+  'FORD INDIA PVT LTD':'Ford','NISSAN MOTOR INDIA PVT LTD':'Nissan',
+  'STELLANTIS INDIA PVT LTD':'Stellantis','STELLANTIS AUTOMOBILES INDIA PVT LTD':'Stellantis',
+  'ISUZU MOTORS INDIA PVT LTD':'Isuzu','VOLVO AUTO INDIA PVT LTD':'Volvo',
+  'PIAGGIO VEHICLES PVT LTD':'Piaggio','OTHERS':'Others'
+};
+
+function parseIndianNum(val) {
+  if (val === null || val === undefined || val === '') return 0;
+  const s = String(val).replace(/,/g,'').trim();
+  return parseInt(s) || 0;
+}
+
+function mapMakerJS(raw) {
+  const u = String(raw).trim().toUpperCase();
+  if (MAKER_MAP_JS[u]) return MAKER_MAP_JS[u];
+  for (const [k,v] of Object.entries(MAKER_MAP_JS)) {
+    if (u.includes(k) || k.includes(u)) return v;
+  }
+  return null;
+}
+
+function mapFuelJS(raw) {
+  const u = String(raw).trim().toUpperCase().replace(/\s|\+/g,'');
+  return FUEL_MAP[u] || null;
+}
+
+function getFY(calYear, month) {
+  if (month <= 3) return `${calYear-1}-${String(calYear).slice(-2)}`;
+  return `${calYear}-${String(calYear+1).slice(-2)}`;
+}
+
+function cleanUploadedFile(wb, filename) {
+  // Detect calendar year from filename
+  const m = filename.match(/CY[_\s]?(\d{2})/i);
+  if (!m) return { error: 'Cannot detect calendar year from filename. Use format: StateName_CY_YY.xlsx' };
+  const calYear = 2000 + parseInt(m[1]);
+
+  // Detect state from filename
+  const stateName = filename.replace(/\.(xlsx|xls)/i,'').replace(/_?CY_?\d{2}/i,'').trim() || 'Unknown';
+
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rawData = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+
+  if (rawData.length < 2) return { error: 'File appears empty' };
+
+  // Find header row
+  let headerRow = 0;
+  for (let i = 0; i < Math.min(5, rawData.length); i++) {
+    const row = rawData[i].map(c => String(c).trim().toUpperCase());
+    if (row.includes('MAKER') || row.includes('FUEL')) { headerRow = i; break; }
+  }
+  const headers = rawData[headerRow].map(c => String(c).trim().toUpperCase());
+  const makerCol = headers.findIndex(h => h === 'MAKER');
+  const fuelCol = headers.findIndex(h => h === 'FUEL' || h === 'FUELTYPE');
+  if (makerCol === -1 || fuelCol === -1) return { error: 'Cannot find MAKER or FUEL columns' };
+
+  const monthIdxMap = {};
+  ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'].forEach((mn,i) => {
+    const idx = headers.indexOf(mn);
+    if (idx !== -1) monthIdxMap[i+1] = idx;
+  });
+
+  const dataRows = rawData.slice(headerRow + 1).filter(r => r[makerCol] && r[fuelCol]);
+
+  const cleaned = [];
+  const unmappedMakers = new Set();
+  const unmappedFuels = new Set();
+  let numericErrors = 0;
+
+  dataRows.forEach(row => {
+    const rawMaker = String(row[makerCol] || '').trim();
+    const rawFuel = String(row[fuelCol] || '').trim();
+    const maker = mapMakerJS(rawMaker) || 'Others';
+    const fuel = mapFuelJS(rawFuel);
+    if (!maker || maker === 'Others') unmappedMakers.add(rawMaker);
+    if (!fuel) { unmappedFuels.add(rawFuel); return; }
+
+    for (let month = 1; month <= 12; month++) {
+      const colIdx = monthIdxMap[month];
+      let val = 0;
+      if (colIdx !== undefined) {
+        try { val = parseIndianNum(row[colIdx]); }
+        catch(e) { numericErrors++; val = 0; }
+      }
+      const fy = getFY(calYear, month);
+      cleaned.push({ cal_year: calYear, month, month_name: MONTH_NAMES[month-1], fy, fy_sort: parseInt(fy.replace('-','').substring(0,4))*100+parseInt(fy.slice(-2)), maker, fuel, registrations: val });
+    }
+  });
+
+  // Aggregate duplicates
+  const aggMap = {};
+  cleaned.forEach(r => {
+    const k = `${r.cal_year}|${r.month}|${r.maker}|${r.fuel}`;
+    if (!aggMap[k]) aggMap[k] = {...r};
+    else aggMap[k].registrations += r.registrations;
+  });
+  const agg = Object.values(aggMap);
+
+  return {
+    calYear, stateName,
+    rows: agg,
+    rawRowCount: dataRows.length,
+    cleanRowCount: agg.length,
+    unmappedMakers: [...unmappedMakers],
+    unmappedFuels: [...unmappedFuels],
+    numericErrors,
+    totalVolume: agg.reduce((a,r)=>a+r.registrations,0),
+    fuelsFound: [...new Set(agg.map(r=>r.fuel))],
+    makersFound: [...new Set(agg.map(r=>r.maker))],
+    previewRows: dataRows.slice(0,8).map(r => ({
+      maker: String(r[makerCol]||'').trim(),
+      fuel: String(r[fuelCol]||'').trim(),
+      mapped_maker: mapMakerJS(String(r[makerCol]||'').trim()) || 'Others',
+      mapped_fuel: mapFuelJS(String(r[fuelCol]||'').trim()) || '⚠ Unknown',
+      jan: parseIndianNum(r[monthIdxMap[1]]),
+      total: Object.values(monthIdxMap).reduce((a,ci) => a + parseIndianNum(r[ci]), 0)
+    }))
+  };
+}
+
+const MONTH_NAMES = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+function renderValidationPanel(result) {
+  if (result.error) {
+    document.getElementById('validation-area').innerHTML = `
+      <div class="validation-panel" style="margin-top:16px">
+        <div class="val-header"><span>Validation Failed</span></div>
+        <div class="val-row"><span class="val-icon val-err">✗</span><span class="val-msg">${result.error}</span></div>
+      </div>`;
+    return;
+  }
+
+  const warnPct = result.rawRowCount > 0 ? (result.unmappedMakers.length / result.rawRowCount * 100) : 0;
+  const rows = [
+    { ok:true, msg:`File parsed successfully`, detail:`${result.rawRowCount} data rows detected` },
+    { ok:true, msg:`Calendar Year detected: ${result.calYear}`, detail:`State/Region: ${result.stateName}` },
+    { ok:true, msg:`Fuels found: ${result.fuelsFound.join(', ')}`, detail:'' },
+    { ok:true, msg:`Makers mapped: ${result.makersFound.filter(m=>m!=='Others').length} canonical OEMs`, detail:'' },
+    result.unmappedMakers.length > 0
+      ? { ok: warnPct < 20, warn: true, msg:`${result.unmappedMakers.length} maker name(s) not in canonical map → mapped to "Others"`, detail:result.unmappedMakers.slice(0,5).join(', ') + (result.unmappedMakers.length > 5 ? '…' : '') }
+      : { ok:true, msg:'All maker names recognized', detail:'' },
+    result.unmappedFuels.length > 0
+      ? { ok:false, msg:`${result.unmappedFuels.length} unknown fuel type(s) — rows skipped`, detail:result.unmappedFuels.join(', ') }
+      : { ok:true, msg:'All fuel types recognized', detail:'' },
+    { ok:true, msg:`FY mapping: Apr–Dec ${result.calYear} → ${result.calYear}-${String(result.calYear+1).slice(-2)} | Jan–Mar ${result.calYear} → ${result.calYear-1}-${String(result.calYear).slice(-2)}`, detail:'' },
+    { ok:true, msg:`Total volume: ${fmtFull(result.totalVolume)} registrations`, detail:`${result.cleanRowCount} clean records after aggregation` },
+  ];
+
+  const valRows = rows.map(r => {
+    const icon = r.ok && !r.warn ? 'val-ok' : r.warn ? 'val-warn' : 'val-err';
+    const sym = r.ok && !r.warn ? '✓' : r.warn ? '⚠' : '✗';
+    return `<div class="val-row">
+      <span class="val-icon ${icon}">${sym}</span>
+      <div><div class="val-msg">${r.msg}</div>${r.detail ? `<div class="val-detail">${r.detail}</div>`:''}</div>
+    </div>`;
+  }).join('');
+
+  const previewTh = `<tr><th>Raw Maker</th><th>Raw Fuel</th><th>→ Mapped Maker</th><th>→ Mapped Fuel</th><th class="num">JAN</th><th class="num">Total</th></tr>`;
+  const previewTds = result.previewRows.map(r => `<tr>
+    <td style="font-size:10px;color:var(--text-dim);max-width:150px;overflow:hidden">${r.maker}</td>
+    <td>${r.fuel}</td>
+    <td style="color:var(--blue)">${r.mapped_maker}</td>
+    <td style="color:${r.mapped_fuel.includes('⚠') ? 'var(--red)' : 'var(--cng)'}">${r.mapped_fuel}</td>
+    <td class="num">${fmtFull(r.jan)}</td>
+    <td class="num">${fmtFull(r.total)}</td>
+  </tr>`).join('');
+
+  document.getElementById('validation-area').innerHTML = `
+    <div class="validation-panel">
+      <div class="val-header">
+        <span>Validation Report — ${result.stateName} CY ${result.calYear}</span>
+        <span class="compare-badge">● ${result.cleanRowCount} records ready</span>
+      </div>
+      ${valRows}
+      <div style="padding:12px 16px;border-top:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:600;color:var(--text-mid);margin-bottom:8px">DATA PREVIEW — First 8 rows after mapping</div>
+        <div class="preview-wrap"><table class="data-table">${previewTh}<tbody>${previewTds}</tbody></table></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="cancelUpload()">✗ Cancel</button>
+        <button class="btn btn-primary" onclick="commitUpload()">✓ Commit & Analyze →</button>
+      </div>
+    </div>`;
+
+  // Store pending result
+  window._pendingUpload = result;
+}
+
+function cancelUpload() {
+  document.getElementById('validation-area').innerHTML = '';
+  document.getElementById('file-input').value = '';
+  window._pendingUpload = null;
+}
+
+function commitUpload() {
+  if (!window._pendingUpload) return;
+  const r = window._pendingUpload;
+  uploadedData = { raw: r.rows, stateName: r.stateName, calYear: r.calYear };
+
+  // Add to geo dropdown
+  const geo = document.getElementById('f-geo');
+  const existing = [...geo.options].find(o => o.value === r.stateName);
+  if (!existing) {
+    const opt = document.createElement('option');
+    opt.value = r.stateName; opt.textContent = r.stateName + ' (CY ' + r.calYear + ')';
+    geo.appendChild(opt);
+    geo.value = r.stateName;
+  }
+
+  document.getElementById('validation-area').innerHTML = `
+    <div class="validation-panel" style="margin-top:16px">
+      <div class="val-header" style="background:rgba(16,185,129,0.1);border-bottom-color:rgba(16,185,129,0.3)">
+        <span style="color:var(--green)">✓ ${r.stateName} data committed successfully</span>
+      </div>
+      <div class="val-row"><span class="val-icon val-ok">✓</span><span class="val-msg">${fmtFull(r.totalVolume)} registrations loaded. Switch to any analytics page and select "${r.stateName}" in Geography filter.</span></div>
+    </div>`;
+  window._pendingUpload = null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FILE UPLOAD HANDLER
+// ─────────────────────────────────────────────────────────────
+function setupUpload() {
+  const zone = document.getElementById('upload-zone');
+  const inp = document.getElementById('file-input');
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  });
+
+  inp.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+  });
+
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type:'binary' });
+        const result = cleanUploadedFile(wb, file.name);
+        renderValidationPanel(result);
+      } catch(err) {
+        renderValidationPanel({ error: 'Failed to read file: ' + err.message });
+      }
+    };
+    reader.readAsBinaryString(file);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// HELPER
+// ─────────────────────────────────────────────────────────────
+function hexToRGB(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// TOGGLE VIEWS
+// ─────────────────────────────────────────────────────────────
+function setTrendView(mode, btn) {
+  trendViewMode = mode;
+  document.querySelectorAll('#page-overview .chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildTrendChart(getFilters());
+}
+function setFuelView(mode, btn) {
+  fuelViewMode = mode;
+  document.querySelectorAll('#page-fuel .chart-card:first-child .chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildFuelStackChart(getFilters());
+}
+function setOemView(mode, btn) {
+  oemViewMode = mode;
+  document.querySelectorAll('#page-oem .chart-card:first-child .chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildOEMBarChart(getFilteredRaw(getFilters()));
+}
+function setHeatFuel(fuel, btn) {
+  heatFuelFilter = fuel;
+  document.querySelectorAll('#page-fuel .chart-card:last-child .chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  buildHeatmap();
+}
+
+// ─────────────────────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────────────────────
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.page === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+  refreshCurrentPage();
+}
+
+function refreshCurrentPage() {
+  if (!DATA) return;
+  if (currentPage === 'overview') buildOverview();
+  else if (currentPage === 'fuel') buildFuelPage();
+  else if (currentPage === 'oem') buildOEMPage();
+  else if (currentPage === 'ev') buildEVPage();
+}
+
+document.querySelectorAll('.nav-tab').forEach(t => {
+  t.addEventListener('click', () => switchPage(t.dataset.page));
+});
+
+// Filter change listeners
+['f-yeartype','f-year','f-month','f-oem','f-fuel','f-geo'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (id === 'f-yeartype') populateYearDropdown();
+    refreshCurrentPage();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// INIT — LOAD DATA
+// ─────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    // Try to load from data/vahan_master.json (GitHub Pages path)
+    let resp;
+    try {
+      resp = await fetch('data/vahan_master.json');
+      if (!resp.ok) throw new Error('not found');
+    } catch {
+      // Fallback: try same directory
+      resp = await fetch('vahan_master.json');
+    }
+    DATA = await resp.json();
+    document.getElementById('dataBadge').textContent = `● ${DATA.meta.total_records.toLocaleString()} RECORDS · ${DATA.meta.cal_years[0]}–${DATA.meta.cal_years[DATA.meta.cal_years.length-1]}`;
+    populateYearDropdown();
+    populateOEMDropdown();
+    setupUpload();
+    buildOverview();
+  } catch(e) {
+    document.getElementById('dataBadge').innerHTML = '<span style="color:var(--red)">● DATA LOAD ERROR</span>';
+    document.querySelector('.main').innerHTML = `
+      <div class="loading">
+        <div style="color:var(--red);font-size:14px">⚠ Could not load vahan_master.json</div>
+        <div style="color:var(--text-dim);font-size:11px;text-align:center;max-width:400px">
+          Place <code style="color:var(--blue)">vahan_master.json</code> in a <code style="color:var(--blue)">data/</code> folder next to index.html.<br>
+          Or run the Python cleaning script to generate it.
+        </div>
+      </div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
