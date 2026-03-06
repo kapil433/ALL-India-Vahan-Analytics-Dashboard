@@ -1670,16 +1670,31 @@ document.querySelectorAll('.nav-tab').forEach(t => {
 // ─────────────────────────────────────────────────────────────
 async function init() {
   try {
-    // Try to load from data/vahan_master.json (GitHub Pages path)
+    // Try multiple paths to handle GitHub Pages subdirectory and local serving
     let resp;
-    try {
-      resp = await fetch('data/vahan_master.json');
-      if (!resp.ok) throw new Error('not found');
-    } catch {
-      // Fallback: try same directory
-      resp = await fetch('vahan_master.json');
+    const paths = [
+      'data/vahan_master.json',
+      './data/vahan_master.json',
+      'vahan_master.json',
+      './vahan_master.json',
+    ];
+    let lastErr = '';
+    for (const path of paths) {
+      try {
+        resp = await fetch(path);
+        if (resp.ok) break;
+        lastErr = `${path} → HTTP ${resp.status}`;
+        resp = null;
+      } catch(e) { lastErr = e.message; resp = null; }
     }
-    DATA = await resp.json();
+    if (!resp || !resp.ok) throw new Error('JSON not found. Tried all paths. Last: ' + lastErr);
+    const _raw = await resp.json();
+    DATA = _raw;
+    DATA.raw = (_raw.data || []).map(r => ({
+      cal_year: r[0], month: r[1], fy: r[2],
+      maker: _raw.makers[r[3]], fuel: _raw.fuels[r[4]],
+      registrations: r[5]
+    }));
     document.getElementById('dataBadge').textContent = `● ${DATA.meta.total_records.toLocaleString()} RECORDS · ${DATA.meta.cal_years[0]}–${DATA.meta.cal_years[DATA.meta.cal_years.length-1]}`;
     populateYearDropdown();
     populateOEMDropdown();
