@@ -292,6 +292,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="nav-tab" data-page="fuel">⛽ Fuel Trends</div>
   <div class="nav-tab" data-page="oem">🏭 OEM Analysis</div>
   <div class="nav-tab" data-page="ev">⚡ EV & Green</div>
+  <div class="nav-tab" data-page="compare">🗺 State vs All India</div>
+  <div class="nav-tab" data-page="forecast">📈 Forecast</div>
   <div class="nav-tab" data-page="upload">📂 Upload Data</div>
 </div>
 
@@ -300,7 +302,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="filter-group">
     <span class="filter-label">GEOGRAPHY</span>
     <select class="filter-select" id="f-geo">
-      <option value="all">All India</option>
+      <option value="All India">All India</option>
+      <option value="Andhra Pradesh">Andhra Pradesh</option>
     </select>
   </div>
   <div class="filter-sep"></div>
@@ -430,11 +433,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <div class="chart-card">
         <div class="chart-header">
           <div>
-            <div class="chart-title">FUEL SHARE TABLE</div>
-            <div class="chart-subtitle">Volume & share by fuel for selected period</div>
+            <div class="chart-title">FUEL ANALYSIS TABLE</div>
+            <div class="chart-subtitle">Volume · Pen% · Pen Change vs prior period</div>
           </div>
         </div>
-        <div id="fuel-share-table"></div>
+        <div id="fuel-analysis-table"></div>
       </div>
     </div>
     <div class="chart-grid-full">
@@ -553,6 +556,226 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   </div>
 
   <!-- UPLOAD PAGE -->
+
+
+  <!-- STATE vs ALL INDIA PAGE -->
+  <div class="page" id="page-compare">
+    <!-- Sub-filter bar -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div class="filter-group"><span class="filter-label">STATE</span>
+        <select class="filter-select" id="cmp-state">
+          <option value="Andhra Pradesh">Andhra Pradesh</option>
+        </select>
+      </div>
+      <div class="filter-group"><span class="filter-label">YEAR TYPE</span>
+        <select class="filter-select" id="cmp-yeartype">
+          <option value="fy">Financial Year</option>
+          <option value="cy">Calendar Year</option>
+        </select>
+      </div>
+      <div class="filter-group"><span class="filter-label">PERIOD</span>
+        <select class="filter-select" id="cmp-year"></select>
+      </div>
+      <div class="filter-group"><span class="filter-label">VIEW</span>
+        <select class="filter-select" id="cmp-view">
+          <option value="sidebyside">Side by Side</option>
+          <option value="overlay">Overlaid</option>
+          <option value="index">Index View (State as % of All India)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="buildComparePage()" style="padding:6px 16px">⟳ Refresh</button>
+    </div>
+
+    <!-- KPI comparison strip -->
+    <div id="cmp-kpi-strip" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+
+    <!-- Volume comparison -->
+    <div class="chart-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div><div class="chart-title" id="cmp-vol-title-state">ANDHRA PRADESH — VOLUME TREND</div>
+          <div class="chart-subtitle">Annual registrations</div></div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-cmp-state-vol"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div><div class="chart-title">ALL INDIA — VOLUME TREND</div>
+          <div class="chart-subtitle">Annual registrations</div></div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-cmp-ai-vol"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Fuel mix comparison -->
+    <div class="chart-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title" id="cmp-fuel-title-state">AP — FUEL MIX TREND</div><div class="chart-subtitle">% share by fuel</div></div>
+          <div class="chart-actions"><button class="chart-btn active" onclick="setCmpFuelView('pct',this)">Share %</button><button class="chart-btn" onclick="setCmpFuelView('abs',this)">Volume</button></div>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-cmp-state-fuel"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">ALL INDIA — FUEL MIX TREND</div><div class="chart-subtitle">% share by fuel</div></div></div>
+        <div class="chart-wrap"><canvas id="chart-cmp-ai-fuel"></canvas></div>
+      </div>
+    </div>
+
+    <!-- OEM comparison -->
+    <div class="chart-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title" id="cmp-oem-title-state">AP — TOP OEMs</div><div class="chart-subtitle">Selected period</div></div></div>
+        <div class="chart-wrap"><canvas id="chart-cmp-state-oem"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">ALL INDIA — TOP OEMs</div><div class="chart-subtitle">Selected period</div></div></div>
+        <div class="chart-wrap"><canvas id="chart-cmp-ai-oem"></canvas></div>
+      </div>
+    </div>
+
+    <!-- OEM & Fuel Analysis Tables -->
+    <div class="chart-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title" id="cmp-oem-tbl-title">OEM ANALYSIS TABLE — STATE</div>
+        <div class="chart-subtitle">Volume · MS% · MS Change vs prior period</div></div></div>
+        <div id="cmp-oem-table-state"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">OEM ANALYSIS TABLE — ALL INDIA</div>
+        <div class="chart-subtitle">Volume · MS% · MS Change vs prior period</div></div></div>
+        <div id="cmp-oem-table-ai"></div>
+      </div>
+    </div>
+
+    <div class="chart-grid" style="margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title" id="cmp-fuel-tbl-title">FUEL ANALYSIS TABLE — STATE</div>
+        <div class="chart-subtitle">Volume · Pen% · Pen% Change vs prior period</div></div></div>
+        <div id="cmp-fuel-table-state"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">FUEL ANALYSIS TABLE — ALL INDIA</div>
+        <div class="chart-subtitle">Volume · Pen% · Pen% Change vs prior period</div></div></div>
+        <div id="cmp-fuel-table-ai"></div>
+      </div>
+    </div>
+
+    <!-- Contribution & Index -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">STATE CONTRIBUTION TO ALL INDIA</div>
+        <div class="chart-subtitle">State registrations as % of national total · by year</div></div></div>
+        <div class="chart-wrap"><canvas id="chart-cmp-contribution"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><div><div class="chart-title">FUEL MIX DIVERGENCE</div>
+        <div class="chart-subtitle">State fuel share minus All India fuel share (pp)</div></div></div>
+        <div class="chart-wrap"><canvas id="chart-cmp-divergence"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORECAST PAGE -->
+  <div class="page" id="page-forecast">
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start">
+
+      <!-- CONTROLS PANEL -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="chart-card">
+          <div class="chart-header"><div class="chart-title">FORECAST SETTINGS</div></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><div class="filter-label" style="margin-bottom:4px">METRIC</div>
+              <select class="filter-select" id="fc-metric" style="width:100%">
+                <option value="total">Total Market Volume</option>
+                <option value="fuel">By Fuel Type</option>
+                <option value="oem">By OEM</option>
+              </select></div>
+            <div id="fc-fuel-row"><div class="filter-label" style="margin-bottom:4px">FUEL TYPE</div>
+              <select class="filter-select" id="fc-fuel" style="width:100%">
+                <option value="all">All Fuels</option>
+                <option value="Petrol">Petrol</option>
+                <option value="Diesel">Diesel</option>
+                <option value="CNG">CNG</option>
+                <option value="EV">EV (Electric)</option>
+                <option value="Strong Hybrid">Strong Hybrid</option>
+              </select></div>
+            <div id="fc-oem-row" style="display:none"><div class="filter-label" style="margin-bottom:4px">OEM</div>
+              <select class="filter-select" id="fc-oem" style="width:100%"></select></div>
+            <div><div class="filter-label" style="margin-bottom:4px">GRANULARITY</div>
+              <select class="filter-select" id="fc-grain" style="width:100%">
+                <option value="monthly">Monthly</option>
+                <option value="annual">Annual</option>
+              </select></div>
+            <div><div class="filter-label" style="margin-bottom:4px">FORECAST HORIZON</div>
+              <select class="filter-select" id="fc-horizon" style="width:100%">
+                <option value="12">12 Months</option>
+                <option value="24">24 Months</option>
+                <option value="36">36 Months</option>
+              </select></div>
+            <div><div class="filter-label" style="margin-bottom:4px">METHOD</div>
+              <select class="filter-select" id="fc-method" style="width:100%">
+                <option value="holtwinters">Holt-Winters (Seasonal)</option>
+                <option value="linear">Linear Trend</option>
+                <option value="cagr">CAGR Projection</option>
+              </select></div>
+            <div><div class="filter-label" style="margin-bottom:4px">TRAINING DATA FROM</div>
+              <select class="filter-select" id="fc-from" style="width:100%"></select></div>
+            <button class="btn btn-primary" id="fc-run-btn" style="width:100%;margin-top:4px" onclick="runForecast()">▶ Run Forecast</button>
+          </div>
+        </div>
+
+        <!-- SUMMARY STATS -->
+        <div class="chart-card" id="fc-summary" style="display:none">
+          <div class="chart-header"><div class="chart-title">FORECAST SUMMARY</div></div>
+          <div id="fc-summary-content"></div>
+        </div>
+
+        <!-- METHOD EXPLAINER -->
+        <div class="chart-card">
+          <div class="chart-header"><div class="chart-title">METHODOLOGY</div></div>
+          <div id="fc-method-desc" style="font-size:11px;color:var(--text-dim);line-height:1.7"></div>
+        </div>
+      </div>
+
+      <!-- CHARTS PANEL -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="kpi-row" id="kpi-forecast" style="grid-template-columns:repeat(4,1fr)"></div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title" id="fc-chart-title">FORECAST — SELECT SETTINGS AND RUN</div>
+            <div class="chart-subtitle" id="fc-chart-sub">Historical data + projected values with confidence bands</div></div>
+            <div class="chart-actions">
+              <button class="chart-btn active" id="fc-btn-both" onclick="setFcView('both',this)">History + Forecast</button>
+              <button class="chart-btn" id="fc-btn-fc" onclick="setFcView('forecast',this)">Forecast Only</button>
+            </div>
+          </div>
+          <div class="chart-wrap" style="position:relative"><canvas id="chart-forecast" style="max-height:360px"></canvas>
+          <div id="fc-placeholder" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px">
+            <div style="font-size:32px;opacity:0.2">📈</div>
+            <div style="font-size:12px;color:var(--text-dim)">Select settings and click Run Forecast</div>
+          </div></div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">SEASONAL PATTERN</div><div class="chart-subtitle">Average monthly index (100 = no seasonality)</div></div>
+            <div class="chart-wrap"><canvas id="chart-seasonal" style="max-height:200px"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><div class="chart-title">TREND DECOMPOSITION</div><div class="chart-subtitle">Trend line extracted from historical data</div></div>
+            <div class="chart-wrap"><canvas id="chart-trend-decomp" style="max-height:200px"></canvas></div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header"><div class="chart-title">FORECAST TABLE</div><div class="chart-subtitle">Month-by-month projected values</div></div>
+          <div id="fc-table" style="overflow-x:auto;max-height:280px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="page" id="page-upload">
     <div style="max-width:780px;margin:0 auto">
       <div style="margin-bottom:20px">
@@ -647,17 +870,16 @@ function getFilters() {
 }
 
 // ── Get current period's raw data ──────────────────────────────
-function getFilteredRaw(filters) {
+function getFilteredRaw(filters, regionOverride) {
   if (!DATA) return [];
-  let src = (uploadedData && filters.geo !== 'all') ? uploadedData.raw : DATA.raw;
+  const region = regionOverride || filters.geo || 'All India';
+  let src = DATA.raw.filter(r => r.region === region);
   return src.filter(r => {
-    // year filter
     if (filters.yeartype === 'fy') {
       if (r.fy !== filters.year) return false;
     } else {
       if (String(r.cal_year) !== String(filters.year)) return false;
     }
-    // month filter (only for CY)
     if (filters.yeartype === 'cy' && filters.month !== 'all') {
       if (String(r.month) !== filters.month) return false;
     }
@@ -668,11 +890,12 @@ function getFilteredRaw(filters) {
 }
 
 // Get prior period data for comparison
-function getPriorPeriodRaw(filters) {
+function getPriorPeriodRaw(filters, regionOverride) {
   if (!DATA) return [];
-  const src = DATA.raw;
+  const region = regionOverride || filters.geo || 'All India';
+  const src = DATA.raw.filter(r => r.region === region);
   if (filters.yeartype === 'fy') {
-    const fy = filters.year; // e.g. "2024-25"
+    const fy = filters.year;
     const parts = fy.split('-');
     const priorFY = `${parseInt(parts[0])-1}-${String(parseInt(parts[0])-1+1).slice(-2)}`;
     return src.filter(r => {
@@ -919,7 +1142,7 @@ function buildFuelPage() {
   buildKPIs('kpi-fuel', rows, priorRows);
   buildFuelStackChart(filters);
   buildMonthlyChart(filters);
-  buildFuelShareTable(rows);
+  buildFuelAnalysisTable(rows, priorRows, 'fuel-analysis-table');
   buildHeatmap();
 }
 
@@ -1054,6 +1277,8 @@ function buildOEMPage() {
   buildOEMPieChart(rows);
   buildOEMTrendChart(filters);
   buildOEMMatrix(rows);
+  buildOEMAnalysisTable(rows, priorRows, 'oem-analysis-table');
+  buildFuelAnalysisTable(rows, priorRows, 'fuel-analysis-table-oem-page');
 }
 
 function buildOEMBarChart(rows) {
@@ -1650,6 +1875,8 @@ function refreshCurrentPage() {
   else if (currentPage === 'fuel') buildFuelPage();
   else if (currentPage === 'oem') buildOEMPage();
   else if (currentPage === 'ev') buildEVPage();
+  else if (currentPage === 'compare') buildComparePage();
+  else if (currentPage === 'forecast') initForecastPage();
 }
 
 document.querySelectorAll('.nav-tab').forEach(t => {
@@ -1690,13 +1917,15 @@ async function init() {
     const _raw = await resp.json();
     DATA = _raw;
     DATA.raw = (_raw.data || []).map(r => ({
-      cal_year: r[0], month: r[1], fy: r[2],
-      maker: _raw.makers[r[3]], fuel: _raw.fuels[r[4]],
-      registrations: r[5]
+      region: _raw.regions ? _raw.regions[r[0]] : 'All India',
+      cal_year: r[1], month: r[2], fy: r[3],
+      maker: _raw.makers[r[4]], fuel: _raw.fuels[r[5]],
+      registrations: r[6]
     }));
     document.getElementById('dataBadge').textContent = `● ${DATA.meta.total_records.toLocaleString()} RECORDS · ${DATA.meta.cal_years[0]}–${DATA.meta.cal_years[DATA.meta.cal_years.length-1]}`;
     populateYearDropdown();
     populateOEMDropdown();
+    initCmpYearDropdown();
     setupUpload();
     buildOverview();
   } catch(e) {
@@ -1711,6 +1940,865 @@ async function init() {
       </div>`;
   }
 }
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// OEM & FUEL ENHANCED ANALYSIS TABLES (used everywhere)
+// ═══════════════════════════════════════════════════════════════
+
+function buildOEMAnalysisTable(rows, priorRows, containerId, title) {
+  const byOEM = groupBy(rows, 'maker');
+  const priorByOEM = groupBy(priorRows, 'maker');
+  const total = sumRegs(rows);
+  const priorTotal = sumRegs(priorRows);
+
+  const sorted = Object.entries(byOEM).sort((a,b) => b[1]-a[1]);
+  const tableRows = sorted.map(([maker, vol]) => {
+    const priorVol = priorByOEM[maker] || 0;
+    const ms = total ? vol/total*100 : 0;
+    const priorMS = priorTotal ? priorVol/priorTotal*100 : 0;
+    const volGrowth = priorVol ? pct(vol, priorVol) : null;
+    const msChange = priorTotal ? ms - priorMS : null;
+
+    const volG = volGrowth !== null
+      ? `<span style="color:${volGrowth>=0?'var(--green)':'var(--red)'}">${volGrowth>=0?'▲':'▼'}${Math.abs(volGrowth).toFixed(1)}%</span>`
+      : '<span style="color:var(--text-dim)">—</span>';
+    const msC = msChange !== null
+      ? `<span style="color:${msChange>=0?'var(--green)':'var(--red)'}">${msChange>=0?'+':''}${msChange.toFixed(2)}pp</span>`
+      : '<span style="color:var(--text-dim)">—</span>';
+
+    return `<tr>
+      <td style="font-weight:500;white-space:nowrap">${maker}</td>
+      <td class="num">${fmtFull(vol)}</td>
+      <td class="num">${volG}</td>
+      <td class="num" style="color:var(--blue)">${ms.toFixed(1)}%</td>
+      <td class="num">${msC}</td>
+    </tr>`;
+  }).join('');
+
+  const totalGrowth = priorTotal ? pct(total, priorTotal) : 0;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <div style="overflow-x:auto;max-height:320px;overflow-y:auto">
+    <table class="data-table">
+      <thead><tr>
+        <th>OEM</th>
+        <th class="num">VOLUME</th>
+        <th class="num">VOL GROWTH</th>
+        <th class="num">MS %</th>
+        <th class="num">MS CHANGE</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+      <tfoot><tr style="border-top:1px solid var(--blue);background:var(--surface2)">
+        <td style="font-weight:600">TOTAL</td>
+        <td class="num" style="font-weight:600">${fmtFull(total)}</td>
+        <td class="num"><span style="color:${totalGrowth>=0?'var(--green)':'var(--red)'}">${totalGrowth>=0?'▲':'▼'}${Math.abs(totalGrowth).toFixed(1)}%</span></td>
+        <td class="num" style="font-weight:600">100.0%</td>
+        <td class="num">—</td>
+      </tr></tfoot>
+    </table></div>`;
+}
+
+function buildFuelAnalysisTable(rows, priorRows, containerId) {
+  const byFuel = groupBy(rows, 'fuel');
+  const priorByFuel = groupBy(priorRows, 'fuel');
+  const total = sumRegs(rows);
+  const priorTotal = sumRegs(priorRows);
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+
+  const tableRows = fuels.map(fuel => {
+    const vol = byFuel[fuel] || 0;
+    const priorVol = priorByFuel[fuel] || 0;
+    const pen = total ? vol/total*100 : 0;
+    const priorPen = priorTotal ? priorVol/priorTotal*100 : 0;
+    const volGrowth = priorVol ? pct(vol, priorVol) : null;
+    const penChange = priorTotal ? pen - priorPen : null;
+
+    const volG = volGrowth !== null
+      ? `<span style="color:${volGrowth>=0?'var(--green)':'var(--red)'}">${volGrowth>=0?'▲':'▼'}${Math.abs(volGrowth).toFixed(1)}%</span>`
+      : '<span style="color:var(--text-dim)">—</span>';
+    const penC = penChange !== null
+      ? `<span style="color:${penChange>=0?'var(--green)':'var(--red)'}">${penChange>=0?'+':''}${penChange.toFixed(2)}pp</span>`
+      : '<span style="color:var(--text-dim)">—</span>';
+
+    return `<tr>
+      <td><span style="color:${FUEL_COLORS[fuel]};font-weight:500">${fuel}</span></td>
+      <td class="num">${fmtFull(vol)}</td>
+      <td class="num">${volG}</td>
+      <td class="num" style="color:${FUEL_COLORS[fuel]}">${pen.toFixed(2)}%</td>
+      <td class="num">${penC}</td>
+    </tr>`;
+  }).join('');
+
+  const totalGrowth = priorTotal ? pct(total, priorTotal) : 0;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+    <table class="data-table">
+      <thead><tr>
+        <th>FUEL</th>
+        <th class="num">VOLUME</th>
+        <th class="num">VOL GROWTH</th>
+        <th class="num">PEN %</th>
+        <th class="num">PEN CHANGE</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+      <tfoot><tr style="border-top:1px solid var(--blue);background:var(--surface2)">
+        <td style="font-weight:600">TOTAL</td>
+        <td class="num" style="font-weight:600">${fmtFull(total)}</td>
+        <td class="num"><span style="color:${totalGrowth>=0?'var(--green)':'var(--red)'}">${totalGrowth>=0?'▲':'▼'}${Math.abs(totalGrowth).toFixed(1)}%</span></td>
+        <td class="num" style="font-weight:600">100.0%</td>
+        <td class="num">—</td>
+      </tr></tfoot>
+    </table></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE vs ALL INDIA COMPARISON PAGE
+// ═══════════════════════════════════════════════════════════════
+
+let cmpFuelViewMode = 'pct';
+
+function initCmpYearDropdown() {
+  const yt = document.getElementById('cmp-yeartype').value;
+  const sel = document.getElementById('cmp-year');
+  sel.innerHTML = '';
+  const years = yt === 'fy'
+    ? (DATA.meta.ai_financial_years || DATA.meta.financial_years).slice().reverse()
+    : DATA.meta.cal_years.slice().reverse();
+  years.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = yt==='fy' ? 'FY '+y : 'CY '+y;
+    sel.appendChild(o);
+  });
+}
+
+function buildComparePage() {
+  if (!DATA) return;
+
+  const state = document.getElementById('cmp-state') ? document.getElementById('cmp-state').value : 'Andhra Pradesh';
+  const yt = document.getElementById('cmp-yeartype') ? document.getElementById('cmp-yeartype').value : 'fy';
+  const year = document.getElementById('cmp-year') ? document.getElementById('cmp-year').value : '';
+
+  if (!year) { initCmpYearDropdown(); buildComparePage(); return; }
+
+  const filters = { yeartype: yt, year, month: 'all', oem: 'all', fuel: 'all', geo: state };
+  const aiFilters = { ...filters, geo: 'All India' };
+
+  const stateRows = getFilteredRaw(filters, state);
+  const aiRows = getFilteredRaw(aiFilters, 'All India');
+  const statePrior = getPriorPeriodRaw(filters, state);
+  const aiPrior = getPriorPeriodRaw(aiFilters, 'All India');
+
+  // Update titles
+  ['cmp-vol-title-state','cmp-fuel-title-state','cmp-oem-title-state','cmp-oem-tbl-title','cmp-fuel-tbl-title'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = el.textContent.replace(/^[A-Z ]+—/, state.toUpperCase() + ' —');
+  });
+
+  buildCmpKPIStrip(state, stateRows, aiRows, statePrior, aiPrior);
+  buildCmpVolCharts(state, yt, filters, aiFilters);
+  buildCmpFuelCharts(state, yt, filters, aiFilters);
+  buildCmpOEMCharts(stateRows, aiRows);
+  buildOEMAnalysisTable(stateRows, statePrior, 'cmp-oem-table-state');
+  buildOEMAnalysisTable(aiRows, aiPrior, 'cmp-oem-table-ai');
+  buildFuelAnalysisTable(stateRows, statePrior, 'cmp-fuel-table-state');
+  buildFuelAnalysisTable(aiRows, aiPrior, 'cmp-fuel-table-ai');
+  buildContributionChart(state, yt);
+  buildDivergenceChart(state, yt, year);
+}
+
+function buildCmpKPIStrip(state, stateRows, aiRows, statePrior, aiPrior) {
+  const sv = sumRegs(stateRows), av = sumRegs(aiRows);
+  const sp = sumRegs(statePrior), ap2 = sumRegs(aiPrior);
+  const contrib = av ? sv/av*100 : 0;
+  const sGrowth = sp ? pct(sv,sp) : 0;
+  const aGrowth = ap2 ? pct(av,ap2) : 0;
+
+  const stByFuel = groupBy(stateRows,'fuel'), aiByFuel = groupBy(aiRows,'fuel');
+  const sEV = sv ? (stByFuel['EV']||0)/sv*100 : 0;
+  const aEV = av ? (aiByFuel['EV']||0)/av*100 : 0;
+
+  const kpis = [
+    { label: state.toUpperCase()+' VOLUME', value: fmt(sv), sub: fmtFull(sv)+' units', delta: sGrowth, cls:'' },
+    { label: 'ALL INDIA VOLUME', value: fmt(av), sub: fmtFull(av)+' units', delta: aGrowth, cls:'' },
+    { label: 'STATE CONTRIBUTION', value: contrib.toFixed(2)+'%', sub: 'of national total', delta: null, cls:'warn' },
+    { label: 'EV: STATE vs INDIA', value: sEV.toFixed(1)+'% vs '+aEV.toFixed(1)+'%', sub: `${(sEV-aEV)>=0?'+':''}${(sEV-aEV).toFixed(2)}pp vs national`, delta: null, cls:'ev' },
+  ];
+  document.getElementById('cmp-kpi-strip').innerHTML = kpis.map(k=>`
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="font-size:18px">${k.value}</div>
+      <div class="kpi-sub">
+        <span>${k.sub}</span>
+        ${k.delta!==null ? deltaArrow(k.delta) : ''}
+      </div>
+    </div>`).join('');
+}
+
+function buildCmpVolCharts(state, yt, filters, aiFilters) {
+  const periods = yt==='fy'
+    ? (DATA.meta.ai_financial_years||DATA.meta.financial_years)
+    : DATA.meta.cal_years;
+
+  function getVolByPeriod(region) {
+    const by = {};
+    periods.forEach(p => by[p]=0);
+    DATA.raw.filter(r=>r.region===region).forEach(r=>{
+      const p = yt==='fy' ? r.fy : String(r.cal_year);
+      if(by[p]!==undefined) by[p]+=r.registrations;
+    });
+    return periods.map(p=>by[p]||0);
+  }
+
+  const stVals = getVolByPeriod(state);
+  const aiVals = getVolByPeriod('All India');
+
+  const color = '#22d3ee';
+  updateChart('chart-cmp-state-vol','line',periods,[{
+    label:state, data:stVals, borderColor:color, backgroundColor:color+'22',
+    fill:true, tension:0.3, pointRadius:3
+  }],{});
+  updateChart('chart-cmp-ai-vol','line',periods,[{
+    label:'All India', data:aiVals, borderColor:'#3b82f6', backgroundColor:'#3b82f622',
+    fill:true, tension:0.3, pointRadius:3
+  }],{});
+}
+
+function buildCmpFuelCharts(state, yt, filters, aiFilters) {
+  const periods = yt==='fy'
+    ? (DATA.meta.ai_financial_years||DATA.meta.financial_years)
+    : DATA.meta.cal_years;
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+  const isPct = cmpFuelViewMode==='pct';
+
+  function getFuelByPeriod(region) {
+    const by = {};
+    periods.forEach(p => { by[p]={}; fuels.forEach(f=>by[p][f]=0); });
+    DATA.raw.filter(r=>r.region===region).forEach(r=>{
+      const p = yt==='fy'?r.fy:String(r.cal_year);
+      if(by[p]&&fuels.includes(r.fuel)) by[p][r.fuel]+=r.registrations;
+    });
+    return by;
+  }
+
+  function makeDatasets(byPeriod) {
+    return fuels.map(fuel=>({
+      label:fuel,
+      data:periods.map(p=>{
+        const v = byPeriod[p][fuel]||0;
+        if(!isPct) return v;
+        const t = fuels.reduce((a,f)=>a+(byPeriod[p][f]||0),0);
+        return t ? parseFloat((v/t*100).toFixed(2)) : 0;
+      }),
+      backgroundColor:FUEL_COLORS[fuel], stack:'a', borderWidth:0
+    }));
+  }
+
+  const stBy = getFuelByPeriod(state);
+  const aiBy = getFuelByPeriod('All India');
+  updateChart('chart-cmp-state-fuel','bar',periods,makeDatasets(stBy),{stacked:true,suffix:isPct?'%':''});
+  updateChart('chart-cmp-ai-fuel','bar',periods,makeDatasets(aiBy),{stacked:true,suffix:isPct?'%':''});
+}
+
+function buildCmpOEMCharts(stateRows, aiRows) {
+  const stByOEM = groupBy(stateRows,'maker');
+  const aiByOEM = groupBy(aiRows,'maker');
+
+  const stSorted = Object.entries(stByOEM).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const aiSorted = Object.entries(aiByOEM).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  updateChart('chart-cmp-state-oem','bar',stSorted.map(x=>x[0]),[{
+    label:'Registrations', data:stSorted.map(x=>x[1]),
+    backgroundColor:stSorted.map((_,i)=>OEM_COLORS[i%OEM_COLORS.length]), borderRadius:3
+  }],{indexAxis:'y'});
+  updateChart('chart-cmp-ai-oem','bar',aiSorted.map(x=>x[0]),[{
+    label:'Registrations', data:aiSorted.map(x=>x[1]),
+    backgroundColor:aiSorted.map((_,i)=>OEM_COLORS[i%OEM_COLORS.length]), borderRadius:3
+  }],{indexAxis:'y'});
+}
+
+function buildContributionChart(state, yt) {
+  const periods = yt==='fy'
+    ? (DATA.meta.ai_financial_years||DATA.meta.financial_years)
+    : DATA.meta.cal_years;
+
+  const stBy={}, aiBy={};
+  periods.forEach(p=>{stBy[p]=0;aiBy[p]=0;});
+  DATA.raw.forEach(r=>{
+    const p = yt==='fy'?r.fy:String(r.cal_year);
+    if(stBy[p]!==undefined){
+      if(r.region===state) stBy[p]+=r.registrations;
+      if(r.region==='All India') aiBy[p]+=r.registrations;
+    }
+  });
+  const contrib = periods.map(p=>aiBy[p]?parseFloat((stBy[p]/aiBy[p]*100).toFixed(3)):0);
+
+  updateChart('chart-cmp-contribution','line',periods,[{
+    label:'State % of All India', data:contrib,
+    borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.1)',
+    fill:true, tension:0.3, pointRadius:3, pointBackgroundColor:'#fbbf24'
+  }],{suffix:'%'});
+}
+
+function buildDivergenceChart(state, yt, selectedYear) {
+  const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
+  const stRows = DATA.raw.filter(r => r.region===state && (yt==='fy'?r.fy:String(r.cal_year))===String(selectedYear));
+  const aiRows = DATA.raw.filter(r => r.region==='All India' && (yt==='fy'?r.fy:String(r.cal_year))===String(selectedYear));
+
+  const stTotal = sumRegs(stRows), aiTotal = sumRegs(aiRows);
+  const stByFuel = groupBy(stRows,'fuel'), aiByFuel = groupBy(aiRows,'fuel');
+
+  const divergence = fuels.map(f => {
+    const sShare = stTotal ? (stByFuel[f]||0)/stTotal*100 : 0;
+    const aShare = aiTotal ? (aiByFuel[f]||0)/aiTotal*100 : 0;
+    return parseFloat((sShare-aShare).toFixed(2));
+  });
+
+  updateChart('chart-cmp-divergence','bar',fuels,[{
+    label:'State − All India (pp)',
+    data:divergence,
+    backgroundColor:divergence.map((v,i)=>v>=0?FUEL_COLORS[fuels[i]]+'cc':FUEL_COLORS[fuels[i]]+'55'),
+    borderColor:fuels.map(f=>FUEL_COLORS[f]),
+    borderWidth:1, borderRadius:3
+  }],{suffix:'pp',yZero:true});
+}
+
+function setCmpFuelView(mode, btn) {
+  cmpFuelViewMode = mode;
+  document.querySelectorAll('#page-compare .chart-card .chart-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(DATA) {
+    const state = document.getElementById('cmp-state').value;
+    const yt = document.getElementById('cmp-yeartype').value;
+    const year = document.getElementById('cmp-year').value;
+    buildCmpFuelCharts(state, yt, {yeartype:yt,year,month:'all',oem:'all',fuel:'all',geo:state}, {yeartype:yt,year,month:'all',oem:'all',fuel:'all',geo:'All India'});
+  }
+}
+
+// Wire cmp year type change
+document.addEventListener('DOMContentLoaded', () => {
+  const cmpYt = document.getElementById('cmp-yeartype');
+  if (cmpYt) cmpYt.addEventListener('change', () => { initCmpYearDropdown(); });
+});
+
+
+// ═══════════════════════════════════════════════════════════════
+// FORECASTING ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+let fcViewMode = 'both';
+let fcResult = null;
+
+const METHOD_DESC = {
+  holtwinters: `<strong style="color:var(--text)">Holt-Winters Triple Exponential Smoothing</strong><br>
+    Handles trend + seasonality simultaneously. Learns the pattern of each month 
+    (e.g. Oct/Nov always spike for festive season) and projects it forward. 
+    Best for data with clear seasonal cycles like vehicle registrations.
+    <br><br>Confidence bands widen over time — honest about uncertainty.`,
+  linear: `<strong style="color:var(--text)">Linear Trend Regression</strong><br>
+    Fits a straight-line trend to historical data using least squares. 
+    Simple and interpretable. Best when growth is steady without 
+    strong seasonal patterns. Adds ±1 standard deviation bands.`,
+  cagr: `<strong style="color:var(--text)">CAGR Projection</strong><br>
+    Calculates the Compound Annual Growth Rate from the selected start year 
+    to the latest full year, then projects that rate forward. 
+    Best for understanding "if current momentum continues" scenarios.
+    Includes seasonal adjustment using historical monthly patterns.`
+};
+
+// ── Get monthly time-series for selected metric ─────────────────
+function getForecastSeries(metric, fuel, oem) {
+  if (!DATA) return [];
+  const series = {};
+  DATA.raw.forEach(r => {
+    if (metric === 'fuel' && fuel !== 'all' && r.fuel !== fuel) return;
+    if (metric === 'oem' && r.maker !== oem) return;
+    const key = r.cal_year * 100 + r.month;
+    series[key] = (series[key] || 0) + r.registrations;
+  });
+  return Object.entries(series)
+    .sort((a,b) => a[0]-b[0])
+    .map(([k,v]) => ({ year: Math.floor(k/100), month: k%100, value: v }));
+}
+
+// ── Filter series from a start year ────────────────────────────
+function sliceFrom(series, fromYear) {
+  return series.filter(p => p.year >= fromYear);
+}
+
+// ── Holt-Winters Triple Exponential Smoothing ───────────────────
+function holtWinters(data, horizon, alpha=0.3, beta=0.1, gamma=0.3, period=12) {
+  const n = data.length;
+  if (n < period * 2) return null;
+
+  // Initialise level, trend, seasonal
+  let level = 0, trend = 0;
+  const seasonal = new Array(period).fill(1);
+
+  // Initial level = avg of first period
+  for (let i = 0; i < period; i++) level += data[i];
+  level /= period;
+
+  // Initial trend = avg change per period
+  let sum2 = 0;
+  for (let i = period; i < period * 2; i++) sum2 += data[i];
+  trend = (sum2 / period - level) / period;
+
+  // Initial seasonal: ratio of each point to initial level
+  for (let i = 0; i < period; i++) seasonal[i] = data[i] / level;
+
+  const fitted = [];
+  const levels = [], trends = [];
+
+  for (let i = 0; i < n; i++) {
+    const s = seasonal[i % period];
+    const prevLevel = level;
+    const prevTrend = trend;
+    level = alpha * (data[i] / s) + (1 - alpha) * (prevLevel + prevTrend);
+    trend = beta * (level - prevLevel) + (1 - beta) * prevTrend;
+    seasonal[i % period] = gamma * (data[i] / level) + (1 - gamma) * s;
+    fitted.push((prevLevel + prevTrend) * s);
+    levels.push(level);
+    trends.push(trend);
+  }
+
+  // Forecast
+  const forecast = [];
+  const residuals = data.map((v, i) => v - fitted[i]);
+  const mse = residuals.reduce((a, r) => a + r * r, 0) / n;
+  const rmse = Math.sqrt(mse);
+
+  for (let h = 1; h <= horizon; h++) {
+    const s = seasonal[(n + h - 1) % period];
+    const point = (level + trend * h) * s;
+    const ci = rmse * Math.sqrt(h) * 1.96;
+    forecast.push({
+      value: Math.max(0, Math.round(point)),
+      lower: Math.max(0, Math.round(point - ci)),
+      upper: Math.max(0, Math.round(point + ci))
+    });
+  }
+
+  // Extract seasonal indices (normalised to 100)
+  const normSeasonal = seasonal.map(s => Math.round(s * 100));
+
+  return { fitted: fitted.map(v => Math.max(0, Math.round(v))), forecast, seasonal: normSeasonal, rmse: Math.round(rmse), levels, trends };
+}
+
+// ── Linear Trend ────────────────────────────────────────────────
+function linearForecast(data, horizon) {
+  const n = data.length;
+  const xMean = (n - 1) / 2;
+  const yMean = data.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  data.forEach((y, x) => { num += (x - xMean) * (y - yMean); den += (x - xMean) ** 2; });
+  const slope = den ? num / den : 0;
+  const intercept = yMean - slope * xMean;
+  const fitted = data.map((_, x) => Math.max(0, Math.round(intercept + slope * x)));
+  const residuals = data.map((v, i) => v - fitted[i]);
+  const std = Math.sqrt(residuals.reduce((a, r) => a + r * r, 0) / n);
+
+  // Seasonal pattern from residuals
+  const seasonal = new Array(12).fill(0);
+  const counts = new Array(12).fill(0);
+  data.forEach((v, i) => { const m = i % 12; seasonal[m] += v / (fitted[i] || 1); counts[m]++; });
+  const normSeasonal = seasonal.map((s, i) => Math.round((counts[i] ? s / counts[i] : 1) * 100));
+
+  const forecast = [];
+  for (let h = 1; h <= horizon; h++) {
+    const trend = intercept + slope * (n + h - 1);
+    const si = normSeasonal[(n + h - 1) % 12] / 100;
+    const point = Math.max(0, Math.round(trend * si));
+    const ci = std * Math.sqrt(1 + 1/n + (h*h)/den) * 1.96;
+    forecast.push({
+      value: point,
+      lower: Math.max(0, Math.round(point - ci)),
+      upper: Math.max(0, Math.round(point + ci))
+    });
+  }
+  return { fitted, forecast, seasonal: normSeasonal, rmse: Math.round(std) };
+}
+
+// ── CAGR Projection ─────────────────────────────────────────────
+function cagrForecast(data, horizon) {
+  const n = data.length;
+  // Annual totals
+  const years = Math.floor(n / 12);
+  const annuals = [];
+  for (let y = 0; y < years; y++) {
+    annuals.push(data.slice(y*12, y*12+12).reduce((a,b)=>a+b,0));
+  }
+  const cagr = annuals.length >= 2
+    ? Math.pow(annuals[annuals.length-1] / annuals[0], 1/(annuals.length-1)) - 1
+    : 0.05;
+
+  // Monthly seasonal pattern
+  const seasonal = new Array(12).fill(0);
+  const counts = new Array(12).fill(0);
+  data.forEach((v, i) => { seasonal[i%12] += v; counts[i%12]++; });
+  const avgMonthly = seasonal.map((s,i) => counts[i] ? s/counts[i] : 0);
+  const annualAvg = avgMonthly.reduce((a,b)=>a+b,0);
+  const normSeasonal = avgMonthly.map(v => Math.round((annualAvg ? v/annualAvg*12 : 1)*100));
+
+  const lastAnnual = annuals[annuals.length-1];
+  const fitted = data.map((_, i) => {
+    const yr = Math.floor(i/12);
+    const base = annuals[yr] || lastAnnual;
+    return Math.max(0, Math.round(base * normSeasonal[i%12] / 1200));
+  });
+
+  const forecast = [];
+  const std = Math.sqrt(data.map((v,i)=>Math.pow(v-fitted[i],2)).reduce((a,b)=>a+b,0)/n);
+  for (let h = 1; h <= horizon; h++) {
+    const yr = Math.floor(h/12);
+    const projected = lastAnnual * Math.pow(1+cagr, yr + h/12 - Math.floor(h/12));
+    const si = normSeasonal[(n+h-1)%12] / 100;
+    const point = Math.max(0, Math.round(projected * si / 12));
+    const ci = std * Math.sqrt(h) * 1.645;
+    forecast.push({
+      value: point,
+      lower: Math.max(0, Math.round(point - ci)),
+      upper: Math.max(0, Math.round(point + ci))
+    });
+  }
+  return { fitted, forecast, seasonal: normSeasonal, rmse: Math.round(std), cagr: (cagr*100).toFixed(1) };
+}
+
+// ── Generate future labels ──────────────────────────────────────
+function getFutureLabels(series, horizon) {
+  const last = series[series.length-1];
+  let year = last.year, month = last.month;
+  const labels = [];
+  const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  for (let i = 0; i < horizon; i++) {
+    month++;
+    if (month > 12) { month = 1; year++; }
+    labels.push(`${MNAMES[month-1]} ${year}`);
+  }
+  return labels;
+}
+
+// ── MAIN RUN FORECAST ──────────────────────────────────────────
+function runForecast() {
+  const metric = document.getElementById('fc-metric').value;
+  const fuel = document.getElementById('fc-fuel').value;
+  const oem = document.getElementById('fc-oem').value;
+  const grain = document.getElementById('fc-grain').value;
+  const horizon = parseInt(document.getElementById('fc-horizon').value);
+  const method = document.getElementById('fc-method').value;
+  const fromYear = parseInt(document.getElementById('fc-from').value);
+
+  // Update method description
+  document.getElementById('fc-method-desc').innerHTML = METHOD_DESC[method];
+
+  // Get series
+  let series = getForecastSeries(metric, fuel, oem);
+  series = sliceFrom(series, fromYear);
+
+  if (series.length < 24) {
+    alert('Need at least 24 months of data. Select an earlier start year.');
+    return;
+  }
+
+  const dataVals = series.map(p => p.value);
+  const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const histLabels = series.map(p => `${MNAMES[p.month-1]} ${p.year}`);
+
+  // Run selected method
+  let result;
+  if (method === 'holtwinters') result = holtWinters(dataVals, horizon);
+  else if (method === 'linear') result = linearForecast(dataVals, horizon);
+  else result = cagrForecast(dataVals, horizon);
+
+  if (!result) { alert('Not enough data for this method. Try Linear or CAGR.'); return; }
+
+  const futureLabels = getFutureLabels(series, horizon);
+  fcResult = { series, dataVals, histLabels, futureLabels, result, metric, fuel, oem, method, horizon, grain };
+
+  renderForecastChart();
+  renderSeasonalChart(result.seasonal);
+  renderTrendDecomp(series, result.fitted);
+  renderForecastKPIs(dataVals, result);
+  renderForecastTable(futureLabels, result.forecast);
+
+  document.getElementById('fc-placeholder').style.display = 'none';
+  document.getElementById('fc-summary').style.display = 'block';
+  renderSummary(result, dataVals, method);
+
+  // Title
+  const titleMap = { total:'Total Market', fuel: fuel==='all'?'All Fuels':fuel, oem };
+  document.getElementById('fc-chart-title').textContent = `FORECAST — ${(titleMap[metric]||metric).toUpperCase()}`;
+  document.getElementById('fc-chart-sub').textContent = `${method==='holtwinters'?'Holt-Winters':'method==="linear"?"Linear Trend":"CAGR'} · ${horizon}-month horizon · shaded = 95% confidence band`;
+}
+
+function renderForecastChart() {
+  if (!fcResult) return;
+  const { dataVals, histLabels, futureLabels, result, } = fcResult;
+  const showHistory = fcViewMode !== 'forecast';
+  const n = dataVals.length;
+
+  const allLabels = showHistory ? [...histLabels, ...futureLabels] : futureLabels;
+
+  // Historical actual
+  const actualData = showHistory ? dataVals.map(v=>v) : new Array(futureLabels.length).fill(null);
+  // Fitted (history)
+  const fittedData = showHistory ? [...result.fitted, ...new Array(futureLabels.length).fill(null)] : new Array(futureLabels.length).fill(null);
+  // Forecast point
+  const fcPoint = showHistory
+    ? [...new Array(n).fill(null), ...result.forecast.map(f=>f.value)]
+    : result.forecast.map(f=>f.value);
+  // Upper CI
+  const fcUpper = showHistory
+    ? [...new Array(n).fill(null), ...result.forecast.map(f=>f.upper)]
+    : result.forecast.map(f=>f.upper);
+  // Lower CI
+  const fcLower = showHistory
+    ? [...new Array(n).fill(null), ...result.forecast.map(f=>f.lower)]
+    : result.forecast.map(f=>f.lower);
+
+  destroyChart('chart-forecast');
+  const ctx = document.getElementById('chart-forecast').getContext('2d');
+  charts['chart-forecast'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: allLabels,
+      datasets: [
+        showHistory ? {
+          label: 'Actual',
+          data: actualData,
+          borderColor: '#3b82f6',
+          backgroundColor: 'transparent',
+          pointRadius: 1,
+          pointHoverRadius: 4,
+          borderWidth: 1.5,
+          tension: 0.3,
+          order: 1
+        } : null,
+        showHistory ? {
+          label: 'Fitted',
+          data: fittedData,
+          borderColor: 'rgba(148,163,184,0.5)',
+          backgroundColor: 'transparent',
+          pointRadius: 0,
+          borderWidth: 1,
+          borderDash: [4,4],
+          tension: 0.3,
+          order: 2
+        } : null,
+        {
+          label: 'Forecast',
+          data: fcPoint,
+          borderColor: '#22d3ee',
+          backgroundColor: 'transparent',
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          borderWidth: 2,
+          tension: 0.3,
+          order: 1
+        },
+        {
+          label: 'Upper 95%',
+          data: fcUpper,
+          borderColor: 'transparent',
+          backgroundColor: 'rgba(34,211,238,0.1)',
+          pointRadius: 0,
+          borderWidth: 0,
+          fill: '+1',
+          tension: 0.3,
+          order: 3
+        },
+        {
+          label: 'Lower 95%',
+          data: fcLower,
+          borderColor: 'rgba(34,211,238,0.2)',
+          backgroundColor: 'rgba(34,211,238,0.1)',
+          pointRadius: 0,
+          borderWidth: 0.5,
+          borderDash: [2,2],
+          fill: false,
+          tension: 0.3,
+          order: 3
+        }
+      ].filter(Boolean)
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color:'#94a3b8', font:{size:10}, filter: item => !['Upper 95%','Lower 95%','Fitted'].includes(item.text) || fcViewMode==='both' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (['Upper 95%','Lower 95%'].includes(ctx.dataset.label)) return null;
+              return ` ${ctx.dataset.label}: ${fmtFull(Math.round(ctx.parsed.y))}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(37,42,58,0.8)'}, ticks:{color:'#64748b',font:{size:9},maxTicksLimit:18,maxRotation:45} },
+        y: { grid:{color:'rgba(37,42,58,0.8)'}, ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmt(v)} }
+      }
+    }
+  });
+}
+
+function renderSeasonalChart(seasonal) {
+  const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  updateChart('chart-seasonal', 'bar', MNAMES, [{
+    label: 'Seasonal Index',
+    data: seasonal,
+    backgroundColor: seasonal.map(v => v >= 100 ? 'rgba(34,211,238,0.7)' : 'rgba(244,63,94,0.6)'),
+    borderRadius: 3
+  }], { yZero: true });
+
+  // Add reference line at 100 via annotation — simpler: just note it in subtitle
+}
+
+function renderTrendDecomp(series, fitted) {
+  const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const labels = series.map(p => `${MNAMES[p.month-1]} ${p.year}`);
+  destroyChart('chart-trend-decomp');
+  const ctx = document.getElementById('chart-trend-decomp').getContext('2d');
+  charts['chart-trend-decomp'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'Actual', data: series.map(p=>p.value), borderColor:'rgba(99,102,241,0.5)', pointRadius:0, borderWidth:1, tension:0.3 },
+        { label:'Trend (Fitted)', data: fitted, borderColor:'#f59e0b', pointRadius:0, borderWidth:2, tension:0.4 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{color:'#94a3b8',font:{size:10}} } },
+      scales:{
+        x:{ display:false },
+        y:{ grid:{color:'rgba(37,42,58,0.8)'}, ticks:{color:'#94a3b8',font:{size:9},callback:v=>fmt(v)} }
+      }
+    }
+  });
+}
+
+function renderForecastKPIs(dataVals, result) {
+  const n = dataVals.length;
+  const lastYearActual = dataVals.slice(-12).reduce((a,b)=>a+b,0);
+  const nextYearFc = result.forecast.slice(0,12).reduce((a,f)=>a+f.value,0);
+  const growth = pct(nextYearFc, lastYearActual);
+
+  const peak = result.forecast.reduce((a,f,i) => f.value>a.val ? {val:f.value,idx:i} : a, {val:0,idx:0});
+  const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const kpis = [
+    { label:'LAST 12M ACTUAL', value: fmt(lastYearActual), sub: fmtFull(lastYearActual) + ' units', cls:'' },
+    { label:'NEXT 12M FORECAST', value: fmt(nextYearFc), sub: fmtFull(nextYearFc) + ' units', cls: growth>=0?'green':'' },
+    { label:'PROJECTED GROWTH', value: (growth>=0?'+':'')+growth.toFixed(1)+'%', sub: 'Next 12m vs Last 12m', cls: growth>=0?'green':'' },
+    { label:'FORECAST ACCURACY', value: result.rmse ? fmt(result.rmse) : '—', sub: 'RMSE on training data', cls:'warn' },
+  ];
+
+  document.getElementById('kpi-forecast').innerHTML = kpis.map(k=>`
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="font-size:18px">${k.value}</div>
+      <div class="kpi-sub"><span>${k.sub}</span></div>
+    </div>`).join('');
+}
+
+function renderForecastTable(labels, forecast) {
+  const MNAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const rows = forecast.map((f,i) => {
+    const prev = i>0 ? forecast[i-1].value : null;
+    const delta = prev ? pct(f.value, prev) : null;
+    const dStr = delta !== null
+      ? `<span style="color:${delta>=0?'var(--green)':'var(--red)'};font-size:10px">${delta>=0?'▲':'▼'}${Math.abs(delta).toFixed(1)}%</span>`
+      : '—';
+    return `<tr>
+      <td style="color:var(--text-mid)">${labels[i]}</td>
+      <td class="num" style="color:var(--ev)">${fmtFull(f.value)}</td>
+      <td class="num" style="color:var(--text-dim)">${fmtFull(f.lower)}</td>
+      <td class="num" style="color:var(--text-dim)">${fmtFull(f.upper)}</td>
+      <td class="num">${dStr}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('fc-table').innerHTML = `
+    <table class="data-table">
+      <thead><tr>
+        <th>MONTH</th>
+        <th class="num">FORECAST</th>
+        <th class="num">LOWER 95%</th>
+        <th class="num">UPPER 95%</th>
+        <th class="num">MoM CHANGE</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderSummary(result, dataVals, method) {
+  const n = dataVals.length;
+  const lastYearActual = dataVals.slice(-12).reduce((a,b)=>a+b,0);
+  const nextYearFc = result.forecast.slice(0,12).reduce((a,f)=>a+f.value,0);
+  const growth = pct(nextYearFc, lastYearActual);
+
+  let extra = '';
+  if (method === 'cagr') extra = `<div class="val-row"><span class="val-icon" style="color:var(--blue)">→</span><div class="val-msg">CAGR used: <strong>${result.cagr}%</strong> per year</div></div>`;
+
+  document.getElementById('fc-summary-content').innerHTML = `
+    <div style="font-size:11px">
+      <div class="val-row"><span class="val-icon val-ok">✓</span><div class="val-msg">Trained on <strong>${n} months</strong> of data</div></div>
+      <div class="val-row"><span class="val-icon" style="color:var(--ev)">→</span><div class="val-msg">Next 12m projected: <strong style="color:var(--ev)">${fmt(nextYearFc)}</strong> units</div></div>
+      <div class="val-row"><span class="val-icon" style="color:${growth>=0?'var(--green)':'var(--red)'}">${growth>=0?'▲':'▼'}</span><div class="val-msg">vs last 12m: <strong style="color:${growth>=0?'var(--green)':'var(--red)'}">${(growth>=0?'+':'')+growth.toFixed(1)}%</strong></div></div>
+      <div class="val-row"><span class="val-icon val-warn">~</span><div class="val-msg">RMSE: <strong>${fmtFull(result.rmse)}</strong> units (training error)</div></div>
+      ${extra}
+    </div>`;
+}
+
+function setFcView(mode, btn) {
+  fcViewMode = mode;
+  document.querySelectorAll('#page-forecast .chart-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (fcResult) renderForecastChart();
+}
+
+function initForecastPage() {
+  if (!DATA) return;
+
+  // Populate OEM dropdown
+  const oemSel = document.getElementById('fc-oem');
+  if (oemSel.options.length === 0) {
+    DATA.meta.makers.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m; oemSel.appendChild(o);
+    });
+  }
+
+  // Populate from-year dropdown
+  const fromSel = document.getElementById('fc-from');
+  if (fromSel.options.length === 0) {
+    DATA.meta.cal_years.forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = 'From ' + y; fromSel.appendChild(o);
+    });
+    fromSel.value = DATA.meta.cal_years[0];
+  }
+
+  // Metric change → show/hide fuel/oem row
+  document.getElementById('fc-metric').addEventListener('change', function() {
+    document.getElementById('fc-fuel-row').style.display = this.value === 'oem' ? 'none' : 'block';
+    document.getElementById('fc-oem-row').style.display = this.value === 'oem' ? 'block' : 'none';
+  });
+
+  // Set initial method description
+  document.getElementById('fc-method-desc').innerHTML = METHOD_DESC['holtwinters'];
+  document.getElementById('fc-method').addEventListener('change', function() {
+    document.getElementById('fc-method-desc').innerHTML = METHOD_DESC[this.value] || '';
+  });
+}
+
 
 init();
 </script>
