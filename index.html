@@ -1259,7 +1259,7 @@ function populateMonthDropdown(yt, yearVal) {
   else mSel.value = 'all';
 }
 
-function populateOEMDropdown() {
+function populateOEMDropdown() { if (!DATA) return; const sel = document.getElementById('f-oem'); if (!sel) return;
   if (!DATA) return;
   // OEM list is now managed by initMSDropdowns()
   // This function kept for compatibility
