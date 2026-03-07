@@ -1262,8 +1262,8 @@ function populateMonthDropdown(yt, yearVal) {
 function populateOEMDropdown() { if (!DATA) return; const sel = document.getElementById('f-oem'); if (!sel) return;
   if (!DATA) return;
   // OEM list is now managed by initMSDropdowns()
-  // This function kept for compatibility
-  const sel = document.getElementById('f-oem');
+  // OEM list null-safe
+  // sel already defined
   DATA.meta.makers.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m; opt.textContent = m;
