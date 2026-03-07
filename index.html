@@ -2378,7 +2378,7 @@ async function init() {
     document.getElementById('dataBadge').innerHTML = '<span style="color:var(--red)">● DATA LOAD ERROR</span>';
     document.querySelector('.main').innerHTML = `
       <div class="loading">
-        <div style="color:var(--red);font-size:14px">⚠ Could not load vahan_master.json</div>
+        <div style="color:var(--red);font-size:14px">⚠ Could not load vahan_master.json: ${e.message}</div>
         <div style="color:var(--text-dim);font-size:11px;text-align:center;max-width:400px">
           Place <code style="color:var(--blue)">vahan_master.json</code> in a <code style="color:var(--blue)">data/</code> folder next to index.html.<br>
           Or run the Python cleaning script to generate it.
