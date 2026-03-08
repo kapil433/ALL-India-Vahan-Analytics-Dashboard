@@ -1963,6 +1963,7 @@ function destroyChart(id) {
 }
 
 function updateChart(id, type, labels, datasets, opts={}) {
+    if (typeof type === 'object') { destroyChart(id); const _ctx = document.getElementById(id); if (!_ctx) return; charts[id] = new Chart(_ctx.getContext('2d'), type); return; }
   destroyChart(id);
   const ctx = document.getElementById(id);
   if (!ctx) return;
@@ -4185,6 +4186,7 @@ function closeModal(type) {
 function openModal(type) {
   document.getElementById(`${type}-modal`).style.display = 'block';
   document.body.style.overflow = 'hidden';
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
 }
 
 // Close modal on backdrop click
