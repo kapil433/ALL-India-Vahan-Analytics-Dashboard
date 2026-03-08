@@ -342,8 +342,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="nav-tab" data-page="ev">⚡ EV & Green</div>
   <div class="nav-tab" data-page="compare">🗺 State vs All India</div>
   <div class="nav-tab" data-page="forecast">📈 Forecast</div>
-  <div class="nav-tab" data-page="intel">🧠 Intelligence</div>
-  <div class="nav-tab" data-page="upload">📂 Upload Data</div>
+  <div class="nav-tab" data-page="intel" style="display:none">🧠 Intelligence</div>
+  <div class="nav-tab" data-page="upload" style="display:none">📂 Upload Data</div>
 </div>
 
 <!-- FILTER BAR -->
@@ -4212,24 +4212,25 @@ function openOEMDeepDive(makerName) {
   openModal('oem');
 
   const AI_REGION = 'All India';
+  const latestCY = Math.max(...DATA.raw.filter(r=>r.region===AI_REGION&&r.registrations>0).map(r=>r.cal_year)); const prevCY = latestCY - 1;
   const allRows = DATA.raw.filter(r => r.maker === makerName && r.region === AI_REGION);
   const allMarketRows = DATA.raw.filter(r => r.region === AI_REGION);
 
   // ── KPIs ─────────────────────────────────────────────────────
-  const totalVol = allRows.filter(r => r.cal_year === 2025).reduce((a,r)=>a+r.registrations,0);
-  const priorVol = allRows.filter(r => r.cal_year === 2024).reduce((a,r)=>a+r.registrations,0);
-  const totalMkt = allMarketRows.filter(r => r.cal_year === 2025).reduce((a,r)=>a+r.registrations,0);
+  const totalVol = allRows.filter(r => r.cal_year === latestCY).reduce((a,r)=>a+r.registrations,0);
+  const priorVol = allRows.filter(r => r.cal_year === prevCY).reduce((a,r)=>a+r.registrations,0);
+  const totalMkt = allMarketRows.filter(r => r.cal_year === latestCY).reduce((a,r)=>a+r.registrations,0);
   const ms2025 = totalMkt ? totalVol/totalMkt*100 : 0;
-  const ms2024 = allMarketRows.filter(r=>r.cal_year===2024).reduce((a,r)=>a+r.registrations,0);
+  const ms2024 = allMarketRows.filter(r=>r.cal_year===prevCY).reduce((a,r)=>a+r.registrations,0);
   const ms2024v = ms2024 ? priorVol/(ms2024)*100 : 0;
   const yoy = priorVol ? (totalVol-priorVol)/priorVol*100 : 0;
 
   // CAGR 5yr
-  const vol2020 = allRows.filter(r=>r.cal_year===2020).reduce((a,r)=>a+r.registrations,0);
+  const vol2020 = allRows.filter(r=>r.cal_year===(latestCY-5)).reduce((a,r)=>a+r.registrations,0);
   const cagr5 = vol2020 > 0 ? (Math.pow(totalVol/vol2020, 1/5) - 1)*100 : 0;
 
   // EV share 2025
-  const ev2025 = allRows.filter(r=>r.cal_year===2025&&r.fuel==='EV').reduce((a,r)=>a+r.registrations,0);
+  const ev2025 = allRows.filter(r=>r.cal_year===latestCY&&r.fuel==='EV').reduce((a,r)=>a+r.registrations,0);
   const evShare = totalVol ? ev2025/totalVol*100 : 0;
 
   const FUEL_C = { CNG:'#22c55e', Diesel:'#64748b', EV:'#06b6d4', Petrol:'#6366f1', 'Strong Hybrid':'#f59e0b' };
@@ -4241,7 +4242,7 @@ function openOEMDeepDive(makerName) {
     { label:'EV Share', value: evShare.toFixed(1)+'%', sub: 'of own portfolio', col: FUEL_C['EV'] },
     { label:'Peak Year', value: (() => {
         let maxYr=2013, maxV=0;
-        for (let y=2013;y<=2025;y++){const v=allRows.filter(r=>r.cal_year===y).reduce((a,r)=>a+r.registrations,0);if(v>maxV){maxV=v;maxYr=y;}}
+        for (let y=2013;y<=latestCY;y++){const v=allRows.filter(r=>r.cal_year===y).reduce((a,r)=>a+r.registrations,0);if(v>maxV){maxV=v;maxYr=y;}}
         return String(maxYr);
       })(), sub: 'Highest volume year', col: 'var(--blue)' }
   ];
@@ -4305,7 +4306,7 @@ function openOEMDeepDive(makerName) {
   // ── Chart 3: Seasonality ────────────────────────────────────
   const byMonth = Array(12).fill(0);
   const cntMonth = Array(12).fill(0);
-  allRows.filter(r=>r.cal_year>=2015&&r.cal_year<=2025).forEach(r=>{
+  allRows.filter(r=>r.cal_year>=2015&&r.cal_year<=latestCY).forEach(r=>{
     byMonth[r.month-1]+=r.registrations; cntMonth[r.month-1]++;
   });
   const avgMonth = byMonth.map((v,i)=>cntMonth[i]?v/cntMonth[i]:0);
@@ -4436,31 +4437,23 @@ function buildOEMEventTimeline(makerName) {
   if (!el) return;
 
   const FUEL_C = { CNG:'#22c55e', Diesel:'#64748b', EV:'#06b6d4', Petrol:'#6366f1', 'Strong Hybrid':'#f59e0b' };
-  const internalEvents = (DATA.oem_events?.[makerName] || []).map(e=>({...e, source:'internal'}));
-  const externalEvents = (DATA.events || [])
-    .filter(e => {
-      if (e.fuel_affected === 'all') return true;
-      if (Array.isArray(e.fuel_affected)) return false; // OEM-specific
-      if (Array.isArray(e.oem_affected)) return e.oem_affected.includes(makerName);
-      return true;
-    })
-    .map(e => ({year: parseInt(e.date.split('-')[0]), label: e.label, type: e.type,
-                impact: e.impact, detail: e.detail, source:'external'}));
-
-  const allEvs = [...internalEvents, ...externalEvents]
-    .sort((a,b) => (a.year||0)-(b.year||0));
+const cfg = getEventConfig();
+        const allEvs = (DATA.events || [])
+          .filter(e => e.tier <= 2)
+          .map(e => ({year: parseInt(e.date.split('-')[0]), label: e.label, type: e.type, impact: e.impact, detail: e.detail, source:'market'}))
+          .sort((a,b) => (a.year||0)-(b.year||0));
 
   const impactIcon = i => i==='positive'?'▲':i==='negative'?'▼':'↔';
   const impactCol = i => i==='positive'?'var(--green)':i==='negative'?'var(--red)':'#f59e0b';
 
   const typeColors = {
     product:'#f59e0b', org:'#3b82f6', investment:'#22c55e', exit:'#64748b',
-    ...EVENT_COLORS
+    ...shock:'#ef4444', regulation:'#64748b', subsidy:'#22c55e', policy:'#3b82f6'
   };
 
   const items = allEvs.map(ev=>{
-    const col = typeColors[ev.type] || '#888';
-    const srcBadge = ev.source==='internal'
+    const col = (cfg.type_colors||{})[ev.type] || typeColors[ev.type] || '#888';
+    const srcBadge = false
       ? `<span style="font-size:9px;background:${col}22;color:${col};padding:1px 5px;border-radius:4px;border:1px solid ${col}44">${ev.type?.toUpperCase()}</span>`
       : `<span style="font-size:9px;background:var(--surface);color:var(--text-dim);padding:1px 5px;border-radius:4px;border:1px solid var(--border)">MARKET</span>`;
     return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
@@ -4511,6 +4504,7 @@ function openFuelDeepDive(fuelName) {
   const FUEL_C = { CNG:'#22c55e', Diesel:'#64748b', EV:'#06b6d4', Petrol:'#6366f1', 'Strong Hybrid':'#f59e0b' };
   const col = FUEL_C[fuelName] || 'var(--blue)';
 
+  const AI = 'All India'; const latestCY = Math.max(...DATA.raw.filter(r=>r.region===AI&&r.registrations>0).map(r=>r.cal_year)); const prevCY = latestCY - 1;
   const titleEl = document.getElementById('fuel-modal-title');
   if (titleEl) { titleEl.textContent = fuelName; titleEl.style.color = col; }
   openModal('fuel');
@@ -4518,18 +4512,18 @@ function openFuelDeepDive(fuelName) {
   const AI = 'All India';
   const fuelRows = DATA.raw.filter(r => r.fuel === fuelName && r.region === AI);
   const allRows  = DATA.raw.filter(r => r.region === AI);
-  const years = Array.from({length:13},(_,i)=>2013+i);
+  const years = Array.from({length:latestCY-2012},(_,i)=>2013+i);
   const MNAMES_S = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   // ── KPIs ─────────────────────────────────────────────────────
-  const vol25 = fuelRows.filter(r=>r.cal_year===2025).reduce((a,r)=>a+r.registrations,0);
-  const vol24 = fuelRows.filter(r=>r.cal_year===2024).reduce((a,r)=>a+r.registrations,0);
-  const mkt25 = allRows.filter(r=>r.cal_year===2025).reduce((a,r)=>a+r.registrations,0);
-  const mkt24 = allRows.filter(r=>r.cal_year===2024).reduce((a,r)=>a+r.registrations,0);
+  const vol25 = fuelRows.filter(r=>r.cal_year===latestCY).reduce((a,r)=>a+r.registrations,0);
+  const vol24 = fuelRows.filter(r=>r.cal_year===prevCY).reduce((a,r)=>a+r.registrations,0);
+  const mkt25 = allRows.filter(r=>r.cal_year===latestCY).reduce((a,r)=>a+r.registrations,0);
+  const mkt24 = allRows.filter(r=>r.cal_year===prevCY).reduce((a,r)=>a+r.registrations,0);
   const share25 = mkt25?vol25/mkt25*100:0;
   const share24 = mkt24?vol24/mkt24*100:0;
   const yoy = vol24?(vol25-vol24)/vol24*100:0;
-  const vol20 = fuelRows.filter(r=>r.cal_year===2020).reduce((a,r)=>a+r.registrations,0);
+  const vol20 = fuelRows.filter(r=>r.cal_year===(latestCY-5)).reduce((a,r)=>a+r.registrations,0);
   const cagr5 = vol20>0?(Math.pow(vol25/vol20,1/5)-1)*100:0;
 
   document.getElementById('fuel-modal-kpis').innerHTML = [
@@ -4567,7 +4561,7 @@ function openFuelDeepDive(fuelName) {
 
   // ── Top OEMs in this fuel ─────────────────────────────────────
   const oemVols = {};
-  fuelRows.filter(r=>r.cal_year===2025).forEach(r=>{oemVols[r.maker]=(oemVols[r.maker]||0)+r.registrations;});
+  fuelRows.filter(r=>r.cal_year===latestCY).forEach(r=>{oemVols[r.maker]=(oemVols[r.maker]||0)+r.registrations;});
   const top6 = Object.entries(oemVols).sort((a,b)=>b[1]-a[1]).slice(0,6);
   updateChart('chart-fuel-oem-split',{
     type:'bar',
@@ -4588,7 +4582,7 @@ function openFuelDeepDive(fuelName) {
 
   // ── Seasonality ──────────────────────────────────────────────
   const mo=Array(12).fill(0), cnt=Array(12).fill(0);
-  fuelRows.filter(r=>r.cal_year>=2015&&r.cal_year<=2025).forEach(r=>{mo[r.month-1]+=r.registrations;cnt[r.month-1]++;});
+  fuelRows.filter(r=>r.cal_year>=2015&&r.cal_year<=latestCY).forEach(r=>{mo[r.month-1]+=r.registrations;cnt[r.month-1]++;});
   const avg2=mo.reduce((a,v)=>a+v,0)/12;
   const idx2=mo.map((v,i)=>cnt[i]&&avg2?v/cnt[i]/avg2*100:100);
   updateChart('chart-fuel-seasonal',{
@@ -4629,7 +4623,7 @@ function openFuelDeepDive(fuelName) {
   const evEl = document.getElementById('fuel-modal-events');
   if (evEl) {
     evEl.innerHTML = relevantEvents.map(ev=>{
-      const ec = EVENT_COLORS[ev.type]||'#888';
+      const ec = (getEventConfig().type_colors||{})[ev.type]||'#888';
       const ic = ev.impact==='positive'?'var(--green)':ev.impact==='negative'?'var(--red)':'#f59e0b';
       const ii = ev.impact==='positive'?'▲':ev.impact==='negative'?'▼':'↔';
       return `<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
@@ -4637,7 +4631,7 @@ function openFuelDeepDive(fuelName) {
         <div style="width:3px;background:${ec};border-radius:2px;flex-shrink:0"></div>
         <div>
           <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
-            <span style="font-size:9px;background:${ec}22;color:${ec};padding:1px 5px;border-radius:3px;border:1px solid ${ec}44">${EVENT_LABELS[ev.type]||ev.type}</span>
+            <span style="font-size:9px;background:${ec}22;color:${ec};padding:1px 5px;border-radius:3px;border:1px solid ${ec}44">${(getEventConfig().type_labels||{})[ev.type]||ev.type}</span>
             <span style="font-size:12px;font-weight:600;color:var(--text)">${ev.label}</span>
             <span style="font-size:11px;color:${ic}">${ii} ${ev.side==='supply'?'Supply':'Demand'} shock</span>
           </div>
