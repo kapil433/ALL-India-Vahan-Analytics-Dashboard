@@ -1230,7 +1230,7 @@ function populateYearDropdown() {
   // Filter out partial/incomplete years
   const filtered = years.filter(y => {
     if (yt === 'fy') return !['2012-13','2013-14'].includes(y);
-    return !partialCYs.includes(String(y));
+        return !partialCYs.has(y);
   });
 
   const el = document.getElementById('ms-year-items');
