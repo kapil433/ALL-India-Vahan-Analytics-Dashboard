@@ -1623,11 +1623,9 @@ function buildTopOEMChart(rows) {
 // FUEL TRENDS CHARTS
 // ─────────────────────────────────────────────────────────────
 function buildFuelPage() {
-    console.log('buildFuelPage called', DATA, 'filters:', getFilters());
-  const filters = getFilters();
+ const filters = getFilters();
   const rows = getFilteredRaw(filters);
-    console.log('rows:', rows, 'length:', rows.length);
-  const priorRows = getPriorPeriodRaw(filters);
+ const priorRows = getPriorPeriodRaw(filters);
   buildKPIs('kpi-fuel', rows, priorRows);
   buildFuelStackChart(filters);
   buildMonthlyChart(rows, filters);
