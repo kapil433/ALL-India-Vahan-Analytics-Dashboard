@@ -1281,6 +1281,7 @@ function populateOEMDropdown() {
   // OEM list is now managed by initMSDropdowns()
   // This function kept for compatibility
   const sel = document.getElementById('f-oem');
+  if (!sel) return;
   DATA.meta.makers.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m; opt.textContent = m;
