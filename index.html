@@ -336,12 +336,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 <!-- NAV -->
 <div class="nav">
+  
+  
   <div class="nav-tab active" data-page="overview">📊 Overview</div>
   <div class="nav-tab" data-page="fuel">⛽ Fuel Trends</div>
   <div class="nav-tab" data-page="oem">🏭 OEM Analysis</div>
   <div class="nav-tab" data-page="ev">⚡ EV & Green</div>
   <div class="nav-tab" data-page="compare">🗺 State vs All India</div>
   <div class="nav-tab" data-page="forecast">📈 Forecast</div>
+      <div class="nav-tab" data-page="events">📅 Events</div>
   <div class="nav-tab" data-page="intel" style="display:none">🧠 Intelligence</div>
   <div class="nav-tab" data-page="upload" style="display:none">📂 Upload Data</div>
 </div>
@@ -847,6 +850,66 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     </div>
   </div>
 
+<!-- EVENTS PAGE -->
+<div class="page" id="page-events">
+  <div style="margin-bottom:20px">
+    <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px">📅 Market Events & Policy Timeline</div>
+    <div style="font-size:12px;color:var(--text-dim)">47 research-validated events (2008–2025) sourced from SIAM, PIB, MoRTH, RBI &amp; Supreme Court orders. Each event hypothesis-tested against Vahan registration data.</div>
+  </div>
+  <!-- KPI Strip -->
+  <div class="kpi-row" style="margin-bottom:20px">
+    <div class="kpi-card"><div class="kpi-label">TOTAL EVENTS</div><div class="kpi-value">47</div><div class="kpi-sub">Research-validated</div></div>
+    <div class="kpi-card warn"><div class="kpi-label">T1 CRITICAL</div><div class="kpi-value">14</div><div class="kpi-sub">High-impact events</div></div>
+    <div class="kpi-card"><div class="kpi-label">T2 IMPORTANT</div><div class="kpi-value">21</div><div class="kpi-sub">Notable signals</div></div>
+    <div class="kpi-card"><div class="kpi-label">T3 CONTEXTUAL</div><div class="kpi-value">12</div><div class="kpi-sub">Background context</div></div>
+    <div class="kpi-card ev"><div class="kpi-label">EVENT TYPES</div><div class="kpi-value">6</div><div class="kpi-sub">Shock·Reg·Subsidy·Policy·Product·Break</div></div>
+  </div>
+  <!-- Filters -->
+  <div class="chart-card" style="margin-bottom:16px;padding:14px 18px">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="font-size:11px;font-weight:600;color:var(--text-mid)">FILTER EVENTS:</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer">
+        <input type="checkbox" id="ev-tier1" checked onchange="buildIntelEventsPanel()">
+        <span style="color:#ef4444">&#9646; T1 Critical (14)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer">
+        <input type="checkbox" id="ev-tier2" checked onchange="buildIntelEventsPanel()">
+        <span style="color:#3b82f6">&#9646; T2 Important (21)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer">
+        <input type="checkbox" id="ev-tier3" onchange="buildIntelEventsPanel()">
+        <span style="color:#64748b">&#9646; T3 Contextual (12)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer">
+        <input type="checkbox" id="ev-ap-only" onchange="buildIntelEventsPanel()">
+        <span style="color:#f59e0b">AP Only</span>
+      </label>
+      <div style="margin-left:auto;font-size:11px;color:var(--text-dim)" id="ev-count-label">Showing 35 of 47 events</div>
+    </div>
+  </div>
+  <!-- Events Table -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div><div class="chart-title">EVENT REGISTRY — COMPLETE TABLE</div><div class="chart-subtitle">Chronological · Sourced · Impact-annotated · Supply vs Demand classified</div></div>
+    </div>
+    <div id="intel-events-panel" style="max-height:600px;overflow-y:auto"></div>
+  </div>
+  <!-- Analysis Section -->
+  <div class="chart-grid" style="margin-top:16px">
+    <div class="chart-card">
+      <div class="chart-header"><div><div class="chart-title">EVENTS BY TYPE</div><div class="chart-subtitle">Distribution of event categories</div></div></div>
+      <div class="chart-wrap"><canvas id="chart-events-type"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-header"><div><div class="chart-title">EVENTS BY YEAR</div><div class="chart-subtitle">When did key events cluster?</div></div></div>
+      <div class="chart-wrap"><canvas id="chart-events-year"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-top:16px">
+    <div class="chart-header"><div><div class="chart-title">IMPACT ANALYSIS</div><div class="chart-subtitle">Positive vs Negative vs Mixed events by type</div></div></div>
+    <div class="chart-wrap" style="height:200px"><canvas id="chart-events-impact"></canvas></div>
+  </div>
+</div>
   <div class="page" id="page-intel">
 
   <div style="margin-bottom:20px">
@@ -2339,6 +2402,7 @@ function refreshCurrentPage() {
   else if (currentPage === 'compare') buildComparePage();
   else if (currentPage === 'forecast') initForecastPage();
   else if (currentPage === 'intel') buildIntelPage();
+  else if (currentPage === 'events') buildEventsPage();
 }
 
 document.querySelectorAll('.nav-tab').forEach(t => {
@@ -4694,6 +4758,43 @@ buildFuelAnalysisTable = function(rows, priorRows, containerId) {
   }, 100);
 };
 
+
+function buildEventsPage() {
+  if (!DATA) return;
+  // Build the events table
+  buildIntelEventsPanel();
+  // Build analysis charts
+  const cfg = getEventConfig();
+  const events = DATA.events || [];
+  // Chart 1: Events by type
+  const typeCount = {};
+  events.forEach(e => { typeCount[e.type] = (typeCount[e.type]||0)+1; });
+  const types = Object.keys(typeCount);
+  updateChart('chart-events-type', 'doughnut', types,
+    [{ data: types.map(t=>typeCount[t]),
+       backgroundColor: types.map(t=>cfg.type_colors[t]||'#888'),
+       borderWidth:0 }],
+    {});
+  // Chart 2: Events by year
+  const yearCount = {};
+  events.forEach(e => { const yr=parseInt(e.date.split('-')[0]); yearCount[yr]=(yearCount[yr]||0)+1; });
+  const yrs = Object.keys(yearCount).sort();
+  updateChart('chart-events-year', 'bar', yrs,
+    [{ label:'Events', data:yrs.map(y=>yearCount[y]),
+       backgroundColor: yrs.map(y=>yearCount[y]>=3?'rgba(239,68,68,0.7)':'rgba(59,130,246,0.6)'),
+       borderRadius:3 }], {});
+  // Chart 3: Impact by type stacked
+  const impactTypes = ['positive','negative','mixed','neutral'];
+  const impactColors = {'positive':'rgba(16,185,129,0.75)','negative':'rgba(244,63,94,0.75)','mixed':'rgba(251,191,36,0.75)','neutral':'rgba(100,116,139,0.6)'};
+  const datasets3 = impactTypes.map(imp => ({
+    label: imp,
+    data: types.map(t => events.filter(e=>e.type===t&&e.impact===imp).length),
+    backgroundColor: impactColors[imp],
+    borderWidth:0,
+    stack:'s'
+  }));
+  updateChart('chart-events-impact', 'bar', types, datasets3, {stacked:true});
+}
 
 function buildIntelEventsPanel() {
   const el = document.getElementById('intel-events-panel');
