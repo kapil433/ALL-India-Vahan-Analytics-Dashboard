@@ -1628,7 +1628,7 @@ function buildFuelPage() {
   const priorRows = getPriorPeriodRaw(filters);
   buildKPIs('kpi-fuel', rows, priorRows);
   buildFuelStackChart(filters);
-  buildMonthlyChart(filters);
+  buildMonthlyChart(rows, filters);
   buildFuelAnalysisTable(rows, priorRows, 'fuel-analysis-table');
   buildHeatmap();
 }
@@ -1670,7 +1670,7 @@ function buildFuelStackChart(filters) {
   ).join('');
 }
 
-function buildMonthlyChart(filters) {
+function buildMonthlyChart(rows, filters) {
   const yt = filters.yeartype;
   const year = filters.year;
   const fuels = ['Petrol','Diesel','CNG','EV','Strong Hybrid'];
