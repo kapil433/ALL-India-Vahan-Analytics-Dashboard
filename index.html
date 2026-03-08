@@ -4448,7 +4448,7 @@ const cfg = getEventConfig();
 
   const typeColors = {
     product:'#f59e0b', org:'#3b82f6', investment:'#22c55e', exit:'#64748b',
-    ...shock:'#ef4444', regulation:'#64748b', subsidy:'#22c55e', policy:'#3b82f6'
+    shock:'#ef4444', regulation:'#64748b', subsidy:'#22c55e', policy:'#3b82f6'
   };
 
   const items = allEvs.map(ev=>{
@@ -4509,7 +4509,6 @@ function openFuelDeepDive(fuelName) {
   if (titleEl) { titleEl.textContent = fuelName; titleEl.style.color = col; }
   openModal('fuel');
 
-  const AI = 'All India';
   const fuelRows = DATA.raw.filter(r => r.fuel === fuelName && r.region === AI);
   const allRows  = DATA.raw.filter(r => r.region === AI);
   const years = Array.from({length:latestCY-2012},(_,i)=>2013+i);
